@@ -1,0 +1,3104 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100 select-none">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DaveC-Fury Analog Synthesizer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Share+Tech+Mono&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mono: ['"Share Tech Mono"', 'monospace'],
+                        brand: ['"Chakra Petch"', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif']
+                    },
+                    colors: {
+                        wood: {
+                            800: '#3d1e10',
+                            900: '#261108',
+                        },
+                        chassis: '#1a1d24',
+                        panel: '#222630',
+                        amberGlow: '#ffaa00',
+                        ledRed: '#ff3333',
+                        ledGreen: '#33ff66'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Analog Hardware Aesthetics */
+        .wood-panel-left {
+            background: linear-gradient(90deg, #150904 0%, #3a1c0e 60%, #4a2513 85%, #230f06 100%);
+            box-shadow: inset -3px 0 8px rgba(0,0,0,0.8), 5px 0 15px rgba(0,0,0,0.5);
+        }
+        .wood-panel-right {
+            background: linear-gradient(270deg, #150904 0%, #3a1c0e 60%, #4a2513 85%, #230f06 100%);
+            box-shadow: inset 3px 0 8px rgba(0,0,0,0.8), -5px 0 15px rgba(0,0,0,0.5);
+        }
+        .chassis-texture {
+            background: radial-gradient(circle at 50% 0%, #2c3240 0%, #171a21 100%);
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.05), inset 0 -3px 10px rgba(0,0,0,0.8);
+        }
+        .panel-group {
+            background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.2) 100%);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: inset 0 1px 1px rgba(255,255,255,0.1), 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .knob-container {
+            touch-action: none;
+        }
+        .knob-cap {
+            background: radial-gradient(circle at 35% 35%, #4a5162 0%, #1d212a 70%, #111318 100%);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.8);
+        }
+        .knob-cap-accent {
+            background: radial-gradient(circle at 35% 35%, #d97706 0%, #78350f 70%, #451a03 100%);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.4);
+        }
+        .led-indicator {
+            box-shadow: 0 0 8px currentColor;
+        }
+        /* CRT Oscilloscope Screen */
+        .crt-screen {
+            background: #031005;
+            box-shadow: inset 0 0 15px rgba(0,255,100,0.2), inset 0 0 2px rgba(0,0,0,0.8), 0 0 10px rgba(0,255,60,0.15);
+            position: relative;
+        }
+        .crt-screen::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 10;
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+        }
+        /* Piano Keyboard Styles */
+        .key-white {
+            background: linear-gradient(180deg, #e2e8f0 0%, #ffffff 85%, #cbd5e1 100%);
+            box-shadow: inset 0 -5px 4px rgba(0,0,0,0.2), 0 2px 5px rgba(0,0,0,0.4);
+            border-radius: 0 0 4px 4px;
+        }
+        .key-white.active, .key-white:active {
+            background: linear-gradient(180deg, #cbd5e1 0%, #e2e8f0 100%);
+            transform: translateY(2px);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+        }
+        .key-black {
+            background: linear-gradient(180deg, #334155 0%, #0f172a 70%, #020617 100%);
+            box-shadow: inset 0 -2px 2px rgba(255,255,255,0.2), 2px 4px 6px rgba(0,0,0,0.7);
+            border-radius: 0 0 3px 3px;
+        }
+        .key-black.active, .key-black:active {
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            transform: translateY(2px);
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.8);
+        }
+        /* Custom scrollbars for modal */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col justify-between overflow-x-hidden antialiased select-none">
+
+    <!-- Top Header Bar / Global Control & Preset Browser Controls -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between gap-3 z-20">
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5">
+                <span class="inline-block w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
+                <h1 class="font-brand font-bold text-xl tracking-wider text-amber-400">DaveC<span class="text-slate-100">-Fury</span></h1>
+            </div>
+            <span class="text-xs font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 hidden sm:inline-block">200-PRESET EDITION</span>
+        </div>
+
+        <!-- Presets Navigation & Search Bar -->
+        <div class="flex items-center gap-2 flex-wrap">
+            
+            <!-- Quick Prev / Next Buttons -->
+            <div class="flex items-center bg-slate-950 rounded border border-slate-800 p-0.5">
+                <button id="btn-prev-preset" class="text-amber-400 hover:text-amber-300 font-mono font-bold text-xs px-2 py-1 bg-slate-900 hover:bg-slate-800 rounded transition">&lt;</button>
+                
+                <!-- Category Select -->
+                <select id="preset-category-filter" class="bg-transparent text-slate-300 font-mono text-xs focus:outline-none px-2 cursor-pointer border-r border-l border-slate-800">
+                    <option value="ALL">ALL (200)</option>
+                    <option value="BASS">BASS (15)</option>
+                    <option value="LEAD">LEAD (15)</option>
+                    <option value="PAD">PAD (15)</option>
+                    <option value="ARP">ARP (15)</option>
+                    <option value="ANALOG">ANALOG (15)</option>
+                    <option value="KEYS">KEYS (10)</option>
+                    <option value="SFX">SFX (15)</option>
+                    <option value="FX">FX (100)</option>
+                </select>
+
+                <!-- Search Input -->
+                <input type="text" id="preset-search" placeholder="Search 200 presets..." class="bg-transparent text-amber-400 font-mono text-xs px-2 py-1 w-28 sm:w-36 focus:outline-none placeholder-slate-600">
+
+                <!-- Preset Select Dropdown -->
+                <select id="preset-select" class="bg-slate-950 text-amber-400 font-mono text-xs focus:outline-none cursor-pointer px-1.5 py-1 min-w-[12rem] max-w-[20rem] sm:max-w-[28rem] border border-slate-800 rounded" title="Select preset">
+                    <!-- Populated dynamically with 200 presets -->
+                </select>
+
+                <button id="btn-next-preset" class="text-amber-400 hover:text-amber-300 font-mono font-bold text-xs px-2 py-1 bg-slate-900 hover:bg-slate-800 rounded transition">&gt;</button>
+            </div>
+
+            <!-- Open Grid Modal Button -->
+            <button id="btn-open-browser" class="bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 text-xs font-mono px-2.5 py-1 rounded border border-amber-500/40 transition flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                <span>BANK GRID</span>
+            </button>
+
+            <!-- Save & Export/Import -->
+            <button id="btn-save-preset" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono px-2 py-1 rounded border border-slate-700 transition">SAVE</button>
+            <button id="btn-export-preset" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono px-2 py-1 rounded border border-slate-700 transition hidden md:inline-block">EXPORT</button>
+            <label class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono px-2 py-1 rounded border border-slate-700 cursor-pointer transition hidden md:inline-block">
+                IMPORT <input type="file" id="file-import" accept=".json" class="hidden">
+            </label>
+
+            <div class="h-4 w-px bg-slate-700 mx-0.5"></div>
+
+            <!-- DAW Mode Toggle -->
+            <button id="btn-toggle-daw" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono px-2.5 py-1 rounded border border-slate-700 transition flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                <span id="daw-mode-text" class="hidden sm:inline">COMPACT</span>
+            </button>
+        </div>
+
+        <!-- MIDI & Audio Init -->
+        <div class="flex items-center gap-2">
+            <div id="midi-status" class="flex items-center gap-1.5 text-xs font-mono text-slate-400 bg-slate-950 px-2 py-1 rounded border border-slate-800">
+                <span id="midi-led" class="w-2 h-2 rounded-full bg-slate-600"></span>
+                <span id="midi-label" class="hidden sm:inline">MIDI OFF</span>
+            </div>
+            <button id="btn-audio-init" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-brand font-bold text-xs px-3 py-1 rounded shadow-lg shadow-amber-500/20 transition active:scale-95">
+                AUDIO START
+            </button>
+        </div>
+    </header>
+
+    <!-- 100 PRESETS GRID BROWSER MODAL -->
+    <div id="preset-browser-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex flex-col justify-center items-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-5xl w-full h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            
+            <!-- Modal Header -->
+            <div class="p-4 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <h2 class="font-brand font-bold text-lg text-amber-400">200 FACTORY PRESET BANK MANAGER</h2>
+                    <span id="modal-preset-count" class="text-xs font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded">200 Presets</span>
+                </div>
+                <button id="btn-close-modal" class="text-slate-400 hover:text-amber-400 text-xl font-bold px-2">&times;</button>
+            </div>
+
+            <!-- Modal Search & Category Filter Bar -->
+            <div class="p-3 bg-slate-900 border-b border-slate-800 flex flex-wrap gap-2 items-center justify-between">
+                <div class="flex items-center gap-2 flex-wrap" id="modal-category-tags">
+                    <!-- Populated dynamically with category tag buttons -->
+                </div>
+                <input type="text" id="modal-search" placeholder="Type to search..." class="bg-slate-950 border border-slate-700 text-amber-400 font-mono text-xs px-3 py-1.5 rounded w-full sm:w-64 focus:outline-none focus:border-amber-500">
+            </div>
+
+            <!-- Scrollable Presets Grid -->
+            <div id="modal-preset-grid" class="flex-1 p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 overflow-y-auto custom-scrollbar">
+                <!-- 100 Presets dynamically injected here -->
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-3 bg-slate-950 border-t border-slate-800 flex justify-between items-center text-xs font-mono text-slate-500">
+                <span>CLICK ANY PRESET TO LOAD IMMEDIATELY</span>
+                <button id="btn-modal-close-bottom" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-1 rounded border border-slate-700">CLOSE BROWSER</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Synth Chassis Container -->
+    <main id="synth-chassis" class="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 flex flex-col justify-between gap-3">
+        <div class="flex rounded-xl overflow-hidden shadow-2xl border border-slate-800 chassis-texture relative">
+            
+            <!-- Wood Side Panels -->
+            <div id="wood-left" class="w-5 sm:w-8 wood-panel-left flex-shrink-0 hidden sm:block"></div>
+
+            <!-- Central Control Surface -->
+            <div class="flex-1 p-3 sm:p-5 flex flex-col gap-4">
+
+                <!-- TOP ROW: Visualizer, Key Mode Assign, MG (LFO), Arp & Master -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                    
+                    <!-- Scope / CRT Visualizer -->
+                    <div class="md:col-span-3 panel-group rounded-lg p-2.5 flex flex-col justify-between">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] font-mono tracking-widest text-slate-400">SIGNAL SCOPE</span>
+                            <div class="flex gap-1">
+                                <button id="scope-mode-wave" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">WAVE</button>
+                                <button id="scope-mode-fft" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">FFT</button>
+                            </div>
+                        </div>
+                        <div class="crt-screen rounded border border-green-900/50 h-24 w-full overflow-hidden">
+                            <canvas id="scope-canvas" class="w-full h-full block"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Voice Allocation Mode (Mono/Poly key features!) -->
+                    <div class="md:col-span-3 panel-group rounded-lg p-2.5 flex flex-col justify-between">
+                        <span class="text-[10px] font-mono tracking-widest text-amber-400 border-b border-slate-700 pb-1 mb-2 block">KEY ASSIGN MODE</span>
+                        <div class="grid grid-cols-2 gap-1.5 my-auto">
+                            <button id="mode-mono" class="key-mode-btn active text-xs font-mono py-1 px-2 rounded bg-amber-500 text-slate-950 font-bold border border-amber-400 text-center">MONO</button>
+                            <button id="mode-unison" class="key-mode-btn text-xs font-mono py-1 px-2 rounded bg-slate-800 text-slate-300 border border-slate-700 text-center hover:bg-slate-700">UNISON</button>
+                            <button id="mode-cycling" class="key-mode-btn text-xs font-mono py-1 px-2 rounded bg-slate-800 text-slate-300 border border-slate-700 text-center hover:bg-slate-700" title="Classic Mono/Poly Cycling 4-VCO round robin">CYCLING</button>
+                            <button id="mode-chord" class="key-mode-btn text-xs font-mono py-1 px-2 rounded bg-slate-800 text-slate-300 border border-slate-700 text-center hover:bg-slate-700">CHORD/POLY</button>
+                        </div>
+                        <div class="mt-2 flex items-center justify-between gap-1">
+                            <span class="text-[9px] font-mono text-slate-400">UNISON</span>
+                            <div class="knob-container flex flex-col items-center" data-param="unisonSpread" data-min="0" data-max="1" data-value="0.25">
+                                <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 rounded-full origin-bottom"></div>
+                                </div>
+                                <span class="knob-val text-[8px] font-mono text-amber-400/80">0.25</span>
+                            </div>
+                            <span class="text-[9px] font-mono text-slate-400">GLIDE</span>
+                            <div class="knob-container flex flex-col items-center" data-param="glideTime" data-min="0" data-max="2" data-value="0" data-step="0.01">
+                                <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 rounded-full origin-bottom"></div>
+                                </div>
+                                <span class="knob-val text-[8px] font-mono text-amber-400/80">0.00</span>
+                            </div>
+                        </div>
+                        <div class="mt-1.5 flex items-center gap-1 flex-wrap">
+                            <span class="text-[8px] font-mono text-slate-500">GLIDE:</span>
+                            <select id="glide-mode" class="bg-slate-950 text-amber-400 text-[9px] font-mono rounded px-1 py-0.5 border border-slate-700 focus:outline-none">
+                                <option value="off">OFF</option>
+                                <option value="always">ALWAYS</option>
+                                <option value="legato">LEGATO</option>
+                            </select>
+                            <label class="flex items-center gap-1 ml-1 cursor-pointer" title="Hard Sync VCO2→VCO1">
+                                <input type="checkbox" id="hard-sync-toggle" class="accent-amber-500 w-3 h-3">
+                                <span class="text-[8px] font-mono text-slate-400">SYNC</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- MG / LFO Modulation Generator -->
+                    <div class="md:col-span-3 panel-group rounded-lg p-2.5 flex flex-col justify-between">
+                        <span class="text-[10px] font-mono tracking-widest text-amber-400 border-b border-slate-700 pb-1 mb-1 block">MOD GENERATOR (LFO)</span>
+                        <div class="grid grid-cols-4 gap-2 my-auto">
+                            <div class="knob-container flex flex-col items-center" data-param="lfoRate" data-min="0.1" data-max="25" data-value="4" data-step="0.1">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">RATE</span>
+                                <div class="knob-cap w-8 h-8 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-3.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[9px] font-mono text-amber-400/80 mt-0.5">4.0Hz</span>
+                            </div>
+
+                            <div class="knob-container flex flex-col items-center" data-param="lfoPitchDepth" data-min="0" data-max="1" data-value="0">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">PITCH</span>
+                                <div class="knob-cap w-8 h-8 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-3.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[9px] font-mono text-amber-400/80 mt-0.5">0.00</span>
+                            </div>
+
+                            <div class="knob-container flex flex-col items-center" data-param="lfoFilterDepth" data-min="0" data-max="1" data-value="0.2">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">CUTOFF</span>
+                                <div class="knob-cap w-8 h-8 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-3.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[9px] font-mono text-amber-400/80 mt-0.5">0.20</span>
+                            </div>
+
+                            <div class="knob-container flex flex-col items-center" data-param="lfoPwmDepth" data-min="0" data-max="1" data-value="0.3">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">PWM</span>
+                                <div class="knob-cap w-8 h-8 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-3.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[9px] font-mono text-amber-400/80 mt-0.5">0.30</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-1 text-[9px] font-mono">
+                            <span class="text-slate-400">WAVE:</span>
+                            <select id="lfo-wave" class="bg-slate-950 text-amber-400 rounded px-1 py-0.5 border border-slate-700 focus:outline-none">
+                                <option value="triangle">TRIANGLE</option>
+                                <option value="sawtooth">SAW</option>
+                                <option value="square">SQUARE</option>
+                                <option value="samplehold">S & H</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Arpeggiator & Master Section -->
+                    <div class="md:col-span-3 panel-group rounded-lg p-2.5 flex flex-col justify-between">
+                        <span class="text-[10px] font-mono tracking-widest text-amber-400 border-b border-slate-700 pb-1 mb-1 block">ARPEGGIATOR & MASTER</span>
+                        <div class="grid grid-cols-3 gap-2 my-auto">
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">ARP EN</span>
+                                <button id="btn-arp-toggle" class="w-8 h-8 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center font-bold text-xs text-slate-400">OFF</button>
+                            </div>
+                            
+                            <div class="flex flex-col items-center" id="arp-bpm-control">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">BPM</span>
+                                <div class="flex items-center gap-0.5">
+                                    <button type="button" id="btn-bpm-down" class="w-6 h-7 rounded bg-slate-800 hover:bg-slate-700 text-amber-400 font-mono font-bold text-sm border border-slate-600 leading-none" title="BPM −1 (Shift: −5)">−</button>
+                                    <input type="number" id="arp-bpm-input" min="40" max="240" step="1" value="120"
+                                        class="w-11 h-7 bg-slate-950 text-amber-400 font-mono text-xs font-bold text-center rounded border border-slate-700 focus:outline-none focus:border-amber-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                        title="BPM 40–240">
+                                    <button type="button" id="btn-bpm-up" class="w-6 h-7 rounded bg-slate-800 hover:bg-slate-700 text-amber-400 font-mono font-bold text-sm border border-slate-600 leading-none" title="BPM +1 (Shift: +5)">+</button>
+                                </div>
+                            </div>
+
+                            <div class="knob-container flex flex-col items-center" data-param="masterVolume" data-min="0" data-max="1" data-value="0.75">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">VOLUME</span>
+                                <div class="knob-cap-accent w-8 h-8 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-3.5 bg-amber-200 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[9px] font-mono text-amber-400/80 mt-0.5">0.75</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-1 text-[9px] font-mono">
+                            <span class="text-slate-400">PATTERN:</span>
+                            <select id="arp-mode" class="bg-slate-950 text-amber-400 rounded px-1 py-0.5 border border-slate-700 focus:outline-none max-w-[9.5rem]" title="Arpeggio pattern">
+                                <option value="up">UP</option>
+                                <option value="down">DOWN</option>
+                                <option value="updown">UP / DOWN</option>
+                                <option value="random">RANDOM</option>
+                                <option value="downup">DOWN / UP</option>
+                                <option value="as_played">AS PLAYED</option>
+                                <option value="as_played_rev">AS PLAYED REV</option>
+                                <option value="converge">CONVERGE</option>
+                                <option value="diverge">DIVERGE</option>
+                                <option value="converge_diverge">CONV ↔ DIV</option>
+                                <option value="pendulum">PENDULUM</option>
+                                <option value="zigzag">ZIGZAG</option>
+                                <option value="skip1_up">SKIP 1 UP</option>
+                                <option value="skip1_down">SKIP 1 DOWN</option>
+                                <option value="skip2_up">SKIP 2 UP</option>
+                                <option value="skip2_down">SKIP 2 DOWN</option>
+                                <option value="double_up">DOUBLE UP</option>
+                                <option value="double_down">DOUBLE DOWN</option>
+                                <option value="triple_up">TRIPLE UP</option>
+                                <option value="octave_up">OCTAVE UP</option>
+                                <option value="octave_down">OCTAVE DOWN</option>
+                                <option value="octave_updown">OCTAVE UP/DN</option>
+                                <option value="up_octave_bounce">UP + OCT BOUNCE</option>
+                                <option value="down_octave_bounce">DN + OCT BOUNCE</option>
+                                <option value="pinky_up">PINKY UP</option>
+                                <option value="pinky_down">PINKY DOWN</option>
+                                <option value="thumb_up">THUMB UP</option>
+                                <option value="thumb_down">THUMB DOWN</option>
+                                <option value="outside_in">OUTSIDE → IN</option>
+                                <option value="inside_out">INSIDE → OUT</option>
+                                <option value="rotate_left">ROTATE LEFT</option>
+                                <option value="rotate_right">ROTATE RIGHT</option>
+                                <option value="pair_up">PAIR UP</option>
+                                <option value="pair_down">PAIR DOWN</option>
+                                <option value="leapfrog_up">LEAPFROG UP</option>
+                                <option value="leapfrog_down">LEAPFROG DN</option>
+                                <option value="mirror">MIRROR</option>
+                                <option value="stagger_up">STAGGER UP</option>
+                                <option value="stagger_down">STAGGER DN</option>
+                                <option value="chord_burst">CHORD BURST</option>
+                                <option value="repeat_low">REPEAT LOW</option>
+                                <option value="repeat_high">REPEAT HIGH</option>
+                                <option value="repeat_root">REPEAT ROOT</option>
+                                <option value="up_x2_down">UP×2 / DOWN</option>
+                                <option value="down_x2_up">DN×2 / UP</option>
+                                <option value="spiral_up">SPIRAL UP</option>
+                                <option value="spiral_down">SPIRAL DN</option>
+                                <option value="brownian">BROWNIAN</option>
+                                <option value="shuffle">SHUFFLE CYCLE</option>
+                                <option value="binary">BINARY COUNT</option>
+                                <option value="fibonacci">FIBONACCI IDX</option>
+                                <option value="euclidean">EUCLIDEAN</option>
+                                <option value="interleave">INTERLEAVE</option>
+                                <option value="hemiola">HEMIOLA 3:2</option>
+                            </select>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- MIDDLE ROW: 4 Oscillators (VCO 1-4) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    
+                    <!-- VCO 1 -->
+                    <div class="panel-group rounded-lg p-3 relative overflow-hidden" data-vco="0">
+                        <div class="flex items-center justify-between border-b border-slate-700/80 pb-1 mb-2">
+                            <span class="text-xs font-brand font-bold text-amber-400">VCO 1</span>
+                            <span class="vco-active-led w-2 h-2 rounded-full bg-slate-700"></span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">WAVE</span>
+                                <select class="vco-wave bg-slate-950 text-slate-200 text-[10px] font-mono rounded px-1 py-1 border border-slate-700 w-full focus:outline-none">
+                                    <option value="sawtooth">SAW</option>
+                                    <option value="square">SQR</option>
+                                    <option value="triangle">TRI</option>
+                                    <option value="pwm">PWM</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">OCTAVE</span>
+                                <select class="vco-octave bg-slate-950 text-slate-200 text-[10px] font-mono rounded px-1 py-1 border border-slate-700 w-full focus:outline-none">
+                                    <option value="16">16'</option>
+                                    <option value="8" selected>8'</option>
+                                    <option value="4">4'</option>
+                                    <option value="2">2'</option>
+                                </select>
+                            </div>
+                            <div class="knob-container flex flex-col items-center" data-param="vco1Detune" data-min="-50" data-max="50" data-value="0" data-step="1">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">DETUNE</span>
+                                <div class="knob-cap w-7 h-7 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-3 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[9px] font-mono text-amber-400/80 mt-0.5">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VCO 2 -->
+                    <div class="panel-group rounded-lg p-3 relative overflow-hidden" data-vco="1">
+                        <div class="flex items-center justify-between border-b border-slate-700/80 pb-1 mb-2">
+                            <span class="text-xs font-brand font-bold text-amber-400">VCO 2</span>
+                            <span class="vco-active-led w-2 h-2 rounded-full bg-slate-700"></span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">WAVE</span>
+                                <select class="vco-wave bg-slate-950 text-slate-200 text-[10px] font-mono rounded px-1 py-1 border border-slate-700 w-full focus:outline-none">
+                                    <option value="sawtooth">SAW</option>
+                                    <option value="square" selected>SQR</option>
+                                    <option value="triangle">TRI</option>
+                                    <option value="pwm">PWM</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">OCTAVE</span>
+                                <select class="vco-octave bg-slate-950 text-slate-200 text-[10px] font-mono rounded px-1 py-1 border border-slate-700 w-full focus:outline-none">
+                                    <option value="16">16'</option>
+                                    <option value="8" selected>8'</option>
+                                    <option value="4">4'</option>
+                                    <option value="2">2'</option>
+                                </select>
+                            </div>
+                            <div class="knob-container flex flex-col items-center" data-param="vco2Detune" data-min="-50" data-max="50" data-value="7" data-step="1">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">DETUNE</span>
+                                <div class="knob-cap w-7 h-7 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-3 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[9px] font-mono text-amber-400/80 mt-0.5">+7</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VCO 3 -->
+                    <div class="panel-group rounded-lg p-3 relative overflow-hidden" data-vco="2">
+                        <div class="flex items-center justify-between border-b border-slate-700/80 pb-1 mb-2">
+                            <span class="text-xs font-brand font-bold text-amber-400">VCO 3</span>
+                            <span class="vco-active-led w-2 h-2 rounded-full bg-slate-700"></span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">WAVE</span>
+                                <select class="vco-wave bg-slate-950 text-slate-200 text-[10px] font-mono rounded px-1 py-1 border border-slate-700 w-full focus:outline-none">
+                                    <option value="sawtooth" selected>SAW</option>
+                                    <option value="square">SQR</option>
+                                    <option value="triangle">TRI</option>
+                                    <option value="pwm">PWM</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">OCTAVE</span>
+                                <select class="vco-octave bg-slate-950 text-slate-200 text-[10px] font-mono rounded px-1 py-1 border border-slate-700 w-full focus:outline-none">
+                                    <option value="16">16'</option>
+                                    <option value="8">8'</option>
+                                    <option value="4" selected>4'</option>
+                                    <option value="2">2'</option>
+                                </select>
+                            </div>
+                            <div class="knob-container flex flex-col items-center" data-param="vco3Detune" data-min="-50" data-max="50" data-value="-5" data-step="1">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">DETUNE</span>
+                                <div class="knob-cap w-7 h-7 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-3 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[9px] font-mono text-amber-400/80 mt-0.5">-5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VCO 4 -->
+                    <div class="panel-group rounded-lg p-3 relative overflow-hidden" data-vco="3">
+                        <div class="flex items-center justify-between border-b border-slate-700/80 pb-1 mb-2">
+                            <span class="text-xs font-brand font-bold text-amber-400">VCO 4</span>
+                            <span class="vco-active-led w-2 h-2 rounded-full bg-slate-700"></span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">WAVE</span>
+                                <select class="vco-wave bg-slate-950 text-slate-200 text-[10px] font-mono rounded px-1 py-1 border border-slate-700 w-full focus:outline-none">
+                                    <option value="sawtooth">SAW</option>
+                                    <option value="square">SQR</option>
+                                    <option value="triangle" selected>TRI</option>
+                                    <option value="pwm">PWM</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">OCTAVE</span>
+                                <select class="vco-octave bg-slate-950 text-slate-200 text-[10px] font-mono rounded px-1 py-1 border border-slate-700 w-full focus:outline-none">
+                                    <option value="16" selected>16'</option>
+                                    <option value="8">8'</option>
+                                    <option value="4">4'</option>
+                                    <option value="2">2'</option>
+                                </select>
+                            </div>
+                            <div class="knob-container flex flex-col items-center" data-param="vco4Detune" data-min="-50" data-max="50" data-value="12" data-step="1">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">DETUNE</span>
+                                <div class="knob-cap w-7 h-7 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-3 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[9px] font-mono text-amber-400/80 mt-0.5">+12</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- BOTTOM ROW: Mixer, VCF (Filter), Envelopes, Effects -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                    
+                    <!-- Mixer Section -->
+                    <div class="md:col-span-3 panel-group rounded-lg p-3 flex flex-col justify-between">
+                        <span class="text-[10px] font-mono tracking-widest text-amber-400 border-b border-slate-700 pb-1 mb-2 block">MIXER</span>
+                        <div class="grid grid-cols-5 gap-1.5 my-auto text-center">
+                            <div class="flex flex-col items-center">
+                                <span class="text-[8px] font-mono text-slate-400 mb-1">VCO 1</span>
+                                <input type="range" data-param="mixVco1" min="0" max="1" step="0.01" value="0.8" class="v-slider h-20 bg-slate-950 accent-amber-500 rounded cursor-pointer" style="writing-mode: bt-lr; appearance: slider-vertical;">
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-[8px] font-mono text-slate-400 mb-1">VCO 2</span>
+                                <input type="range" data-param="mixVco2" min="0" max="1" step="0.01" value="0.8" class="v-slider h-20 bg-slate-950 accent-amber-500 rounded cursor-pointer" style="writing-mode: bt-lr; appearance: slider-vertical;">
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-[8px] font-mono text-slate-400 mb-1">VCO 3</span>
+                                <input type="range" data-param="mixVco3" min="0" max="1" step="0.01" value="0.5" class="v-slider h-20 bg-slate-950 accent-amber-500 rounded cursor-pointer" style="writing-mode: bt-lr; appearance: slider-vertical;">
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-[8px] font-mono text-slate-400 mb-1">VCO 4</span>
+                                <input type="range" data-param="mixVco4" min="0" max="1" step="0.01" value="0.3" class="v-slider h-20 bg-slate-950 accent-amber-500 rounded cursor-pointer" style="writing-mode: bt-lr; appearance: slider-vertical;">
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-[8px] font-mono text-slate-400 mb-1">NOISE</span>
+                                <input type="range" data-param="mixNoise" min="0" max="1" step="0.01" value="0.0" class="v-slider h-20 bg-slate-950 accent-amber-500 rounded cursor-pointer" style="writing-mode: bt-lr; appearance: slider-vertical;">
+                            </div>
+                        </div>
+                        <div class="mt-2 flex items-center justify-between gap-1">
+                            <span class="text-[8px] font-mono text-slate-500">TYPE</span>
+                            <select id="noise-type" class="bg-slate-950 text-amber-400 text-[9px] font-mono rounded px-1 py-0.5 border border-slate-700 focus:outline-none flex-1">
+                                <option value="white">WHITE</option>
+                                <option value="pink">PINK</option>
+                                <option value="metallic">METAL</option>
+                            </select>
+                        </div>
+                        <div class="mt-1.5 grid grid-cols-2 gap-1">
+                            <div class="knob-container flex flex-col items-center" data-param="velocityAmp" data-min="0" data-max="1" data-value="0.7">
+                                <span class="text-[7px] font-mono text-slate-400">VEL AMP</span>
+                                <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[8px] font-mono text-amber-400/80">0.70</span>
+                            </div>
+                            <div class="knob-container flex flex-col items-center" data-param="velocityFilter" data-min="0" data-max="1" data-value="0.4">
+                                <span class="text-[7px] font-mono text-slate-400">VEL FLT</span>
+                                <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[8px] font-mono text-amber-400/80">0.40</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VCF 24dB Filter Section -->
+                    <div class="md:col-span-3 panel-group rounded-lg p-3 flex flex-col justify-between">
+                        <span class="text-[10px] font-mono tracking-widest text-amber-400 border-b border-slate-700 pb-1 mb-2 block">24dB VCF (FILTER)</span>
+                        <div class="grid grid-cols-4 gap-1.5 my-auto">
+                            <div class="knob-container flex flex-col items-center" data-param="filterCutoff" data-min="20" data-max="18000" data-value="2200" data-step="1" data-log="true">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">CUTOFF</span>
+                                <div class="knob-cap w-8 h-8 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-3.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[9px] font-mono text-amber-400/80 mt-0.5">2.2kHz</span>
+                            </div>
+
+                            <div class="knob-container flex flex-col items-center" data-param="filterRes" data-min="0" data-max="20" data-value="4" data-step="0.1">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">RESON</span>
+                                <div class="knob-cap w-8 h-8 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-3.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[9px] font-mono text-amber-400/80 mt-0.5">4.0</span>
+                            </div>
+
+                            <div class="knob-container flex flex-col items-center" data-param="filterEnvAmount" data-min="-1" data-max="1" data-value="0.6">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">ENV AMT</span>
+                                <div class="knob-cap w-8 h-8 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-3.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[9px] font-mono text-amber-400/80 mt-0.5">+0.6</span>
+                            </div>
+
+                            <div class="knob-container flex flex-col items-center" data-param="filterKeyTrack" data-min="0" data-max="1" data-value="0.5">
+                                <span class="text-[9px] font-mono text-slate-400 mb-1">KEY TRK</span>
+                                <div class="knob-cap w-8 h-8 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-3.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[9px] font-mono text-amber-400/80 mt-0.5">0.5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Envelopes Section -->
+                    <div class="md:col-span-4 panel-group rounded-lg p-3 flex flex-col justify-between">
+                        <span class="text-[10px] font-mono tracking-widest text-amber-400 border-b border-slate-700 pb-1 mb-2 block">ENVELOPES (EG1: FILTER / EG2: VCA)</span>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <!-- Filter EG -->
+                            <div>
+                                <span class="text-[9px] font-mono text-slate-400 mb-1 block text-center">FILTER EG</span>
+                                <div class="grid grid-cols-4 gap-1">
+                                    <div class="knob-container flex flex-col items-center" data-param="vcfAttack" data-min="0.001" data-max="4" data-value="0.02">
+                                        <span class="text-[8px] font-mono text-slate-400">A</span>
+                                        <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize"><div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 left-1/2 -translate-x-1/2"></div></div>
+                                    </div>
+                                    <div class="knob-container flex flex-col items-center" data-param="vcfDecay" data-min="0.01" data-max="6" data-value="0.4">
+                                        <span class="text-[8px] font-mono text-slate-400">D</span>
+                                        <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize"><div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 left-1/2 -translate-x-1/2"></div></div>
+                                    </div>
+                                    <div class="knob-container flex flex-col items-center" data-param="vcfSustain" data-min="0" data-max="1" data-value="0.3">
+                                        <span class="text-[8px] font-mono text-slate-400">S</span>
+                                        <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize"><div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 left-1/2 -translate-x-1/2"></div></div>
+                                    </div>
+                                    <div class="knob-container flex flex-col items-center" data-param="vcfRelease" data-min="0.01" data-max="8" data-value="0.5">
+                                        <span class="text-[8px] font-mono text-slate-400">R</span>
+                                        <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize"><div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 left-1/2 -translate-x-1/2"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- VCA EG -->
+                            <div>
+                                <span class="text-[9px] font-mono text-slate-400 mb-1 block text-center">VCA EG</span>
+                                <div class="grid grid-cols-4 gap-1">
+                                    <div class="knob-container flex flex-col items-center" data-param="vcaAttack" data-min="0.001" data-max="4" data-value="0.01">
+                                        <span class="text-[8px] font-mono text-slate-400">A</span>
+                                        <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize"><div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 left-1/2 -translate-x-1/2"></div></div>
+                                    </div>
+                                    <div class="knob-container flex flex-col items-center" data-param="vcaDecay" data-min="0.01" data-max="6" data-value="0.6">
+                                        <span class="text-[8px] font-mono text-slate-400">D</span>
+                                        <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize"><div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 left-1/2 -translate-x-1/2"></div></div>
+                                    </div>
+                                    <div class="knob-container flex flex-col items-center" data-param="vcaSustain" data-min="0" data-max="1" data-value="0.8">
+                                        <span class="text-[8px] font-mono text-slate-400">S</span>
+                                        <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize"><div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 left-1/2 -translate-x-1/2"></div></div>
+                                    </div>
+                                    <div class="knob-container flex flex-col items-center" data-param="vcaRelease" data-min="0.01" data-max="8" data-value="0.4">
+                                        <span class="text-[8px] font-mono text-slate-400">R</span>
+                                        <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize"><div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 left-1/2 -translate-x-1/2"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Effects FX (Drive, Chorus, Delay, Reverb, Bitcrush) -->
+                    <div class="md:col-span-2 panel-group rounded-lg p-2.5 flex flex-col justify-between">
+                        <div class="flex items-center justify-between border-b border-slate-700 pb-1 mb-1.5">
+                            <span class="text-[10px] font-mono tracking-widest text-amber-400">EFFECTS</span>
+                            <select id="fx-order" class="bg-slate-950 text-amber-400 text-[8px] font-mono rounded px-1 py-0.5 border border-slate-700 focus:outline-none max-w-[110px]" title="FX chain order">
+                                <option value="drive-chorus-delay-reverb">DRV→CHO→DLY→REV</option>
+                                <option value="drive-delay-chorus-reverb">DRV→DLY→CHO→REV</option>
+                                <option value="chorus-drive-delay-reverb">CHO→DRV→DLY→REV</option>
+                                <option value="drive-chorus-reverb-delay">DRV→CHO→REV→DLY</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-3 gap-x-1 gap-y-1.5 my-auto">
+                            <div class="knob-container flex flex-col items-center" data-param="fxDrive" data-min="0" data-max="1" data-value="0.2">
+                                <span class="text-[7px] font-mono text-slate-400">DRIVE</span>
+                                <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[8px] font-mono text-amber-400/80">0.20</span>
+                            </div>
+                            <div class="knob-container flex flex-col items-center" data-param="fxChorusMix" data-min="0" data-max="1" data-value="0">
+                                <span class="text-[7px] font-mono text-slate-400">CHO MIX</span>
+                                <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[8px] font-mono text-amber-400/80">0.00</span>
+                            </div>
+                            <div class="knob-container flex flex-col items-center" data-param="fxChorusDepth" data-min="0" data-max="1" data-value="0.35">
+                                <span class="text-[7px] font-mono text-slate-400">CHO DPTH</span>
+                                <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[8px] font-mono text-amber-400/80">0.35</span>
+                            </div>
+                            <div class="knob-container flex flex-col items-center" data-param="fxDelayTime" data-min="0.05" data-max="1.0" data-value="0.3">
+                                <span class="text-[7px] font-mono text-slate-400">DLY TIME</span>
+                                <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[8px] font-mono text-amber-400/80">0.30</span>
+                            </div>
+                            <div class="knob-container flex flex-col items-center" data-param="fxDelayMix" data-min="0" data-max="0.9" data-value="0.25">
+                                <span class="text-[7px] font-mono text-slate-400">DLY MIX</span>
+                                <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[8px] font-mono text-amber-400/80">0.25</span>
+                            </div>
+                            <div class="knob-container flex flex-col items-center" data-param="fxDelayFeedback" data-min="0" data-max="0.9" data-value="0.4">
+                                <span class="text-[7px] font-mono text-slate-400">DLY FB</span>
+                                <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[8px] font-mono text-amber-400/80">0.40</span>
+                            </div>
+                            <div class="knob-container flex flex-col items-center" data-param="fxReverbMix" data-min="0" data-max="0.8" data-value="0">
+                                <span class="text-[7px] font-mono text-slate-400">REV MIX</span>
+                                <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[8px] font-mono text-amber-400/80">0.00</span>
+                            </div>
+                            <div class="knob-container flex flex-col items-center" data-param="fxReverbSize" data-min="0.1" data-max="1" data-value="0.45">
+                                <span class="text-[7px] font-mono text-slate-400">REV SIZE</span>
+                                <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[8px] font-mono text-amber-400/80">0.45</span>
+                            </div>
+                            <div class="knob-container flex flex-col items-center" data-param="fxBitcrush" data-min="0" data-max="1" data-value="0">
+                                <span class="text-[7px] font-mono text-slate-400">CRUSH</span>
+                                <div class="knob-cap w-6 h-6 rounded-full relative cursor-ns-resize flex items-center justify-center">
+                                    <div class="knob-indicator w-0.5 h-2.5 bg-amber-400 absolute top-0.5 rounded-full"></div>
+                                </div>
+                                <span class="knob-val text-[8px] font-mono text-amber-400/80">0.00</span>
+                            </div>
+                        </div>
+                        <div class="mt-1 flex items-center gap-2 flex-wrap">
+                            <label class="flex items-center gap-1 cursor-pointer" title="Delay tempo sync to ARP BPM">
+                                <input type="checkbox" id="fx-delay-sync" class="accent-amber-500 w-3 h-3">
+                                <span class="text-[8px] font-mono text-slate-400">DLY SYNC</span>
+                            </label>
+                            <label class="flex items-center gap-1 cursor-pointer" title="Drive character emphasis">
+                                <input type="checkbox" id="fx-drive-pre" class="accent-amber-500 w-3 h-3" checked>
+                                <span class="text-[8px] font-mono text-slate-400">DRV HOT</span>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Wood Side Panels (Right) -->
+            <div id="wood-right" class="w-5 sm:w-8 wood-panel-right flex-shrink-0 hidden sm:block"></div>
+        </div>
+
+        <!-- Virtual Keyboard & Octave Transpose Bar -->
+        <div id="keyboard-container" class="bg-slate-900 border border-slate-800 rounded-xl p-2 sm:p-3 shadow-xl">
+            <div class="flex items-center justify-between mb-2 px-1">
+                <div class="flex items-center gap-2">
+                    <button id="btn-oct-down" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono px-2.5 py-1 rounded border border-slate-700">- OCT</button>
+                    <span id="lbl-octave" class="text-xs font-mono text-amber-400 font-bold bg-slate-950 px-2 py-1 rounded border border-slate-800">OCTAVE: 3</span>
+                    <button id="btn-oct-up" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono px-2.5 py-1 rounded border border-slate-700">+ OCT</button>
+                </div>
+                <div class="text-[10px] font-mono text-slate-500 hidden sm:block">
+                    2 OTTAVE (C–C): <span class="text-amber-400/80">Z X C V B N M , . / (bianchi) · S D G H J 2 3 5 6 7 (neri)</span>
+                </div>
+            </div>
+
+            <!-- Piano Key Bed -->
+            <div id="piano-keys" class="relative h-28 sm:h-40 w-full select-none overflow-hidden rounded-md border border-slate-700/50 bg-slate-950">
+                <!-- Dynamically Rendered Piano Keys (2 octaves C–C) -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer Status -->
+    <footer class="bg-slate-950 border-t border-slate-900 px-4 py-1.5 text-[10px] font-mono text-slate-500 flex justify-between items-center">
+        <span>DaveC-Fury JS SYNTHESIZER ENGINE</span>
+        <span id="active-note-display" class="text-amber-500">READY</span>
+    </footer>
+
+    <script>
+        /**
+         * DaveC-Fury Web Audio Engine
+         * 100-Preset Edition Logic
+         */
+
+        let audioCtx = null;
+        let isAudioInit = false;
+
+        // Default Engine Parameters State
+        const state = {
+            presetId: 1,
+            octaveShift: 3,
+            keyMode: 'mono',
+            unisonSpread: 0.25,
+            masterVolume: 0.75,
+
+            // Glide / Portamento
+            glideTime: 0.0,
+            glideMode: 'off', // off | always | legato
+
+            // Hard Sync (VCO2 locked to VCO1)
+            hardSync: false,
+
+            // Noise
+            noiseType: 'white', // white | pink | metallic
+
+            // Velocity sensitivity
+            velocityAmp: 0.7,
+            velocityFilter: 0.4,
+
+            lfoRate: 4.0,
+            lfoWave: 'triangle',
+            lfoPitchDepth: 0.0,
+            lfoFilterDepth: 0.2,
+            lfoPwmDepth: 0.3,
+
+            vco: [
+                { wave: 'sawtooth', octave: 8, detune: 0 },
+                { wave: 'square', octave: 8, detune: 7 },
+                { wave: 'sawtooth', octave: 4, detune: -5 },
+                { wave: 'triangle', octave: 16, detune: 12 }
+            ],
+
+            mixVco1: 0.8,
+            mixVco2: 0.8,
+            mixVco3: 0.5,
+            mixVco4: 0.3,
+            mixNoise: 0.0,
+
+            filterCutoff: 2200,
+            filterRes: 4.0,
+            filterEnvAmount: 0.6,
+            filterKeyTrack: 0.5,
+
+            vcfAttack: 0.02,
+            vcfDecay: 0.4,
+            vcfSustain: 0.3,
+            vcfRelease: 0.5,
+
+            vcaAttack: 0.01,
+            vcaDecay: 0.6,
+            vcaSustain: 0.8,
+            vcaRelease: 0.4,
+
+            // Effects
+            fxDrive: 0.2,
+            fxDrivePre: true,          // true = pre-filter character via waveshape amount
+            fxDelayTime: 0.3,
+            fxDelayMix: 0.25,
+            fxDelayFeedback: 0.4,
+            fxDelaySync: false,
+            fxChorusRate: 0.8,
+            fxChorusDepth: 0.35,
+            fxChorusMix: 0.0,
+            fxReverbSize: 0.45,
+            fxReverbMix: 0.0,
+            fxBitcrush: 0.0,
+            fxSampleRate: 1.0,
+            fxOrder: 'drive-chorus-delay-reverb',
+
+            arpEnabled: false,
+            arpBpm: 120,
+            arpMode: 'up'
+        };
+
+        // Runtime voice tracking for glide
+        let lastNoteFreq = 440;
+        let lastNoteNumber = 60;
+        let keysHeldCount = 0;
+
+        /**
+         * GENERATE 100 FACTORY PRESETS BANK
+         * Categorized into 8 Groups (BASS, LEAD, PAD, ARP, ANALOG, KEYS, SFX, FX)
+         */
+        const PRESET_BANK = [];
+
+        function generate100Presets() /* now 200: 100 synth + 100 FX */ {
+            const categories = [
+                { name: "BASS", count: 15, idStart: 1 },
+                { name: "LEAD", count: 15, idStart: 16 },
+                { name: "PAD", count: 15, idStart: 31 },
+                { name: "ARP", count: 15, idStart: 46 },
+                { name: "ANALOG", count: 15, idStart: 61 },
+                { name: "KEYS", count: 10, idStart: 76 },
+                { name: "SFX", count: 15, idStart: 86 },
+                { name: "FX", count: 100, idStart: 101 }
+            ];
+
+            const presetTemplates = {
+                BASS: [
+                    "Acid Sub Monster", "Classic Moogish Bass", "Mono/Poly Punch", "Fat Dual Saw Bass", "Sub Terranean Growl",
+                    "Reso Sweep Bass", "Drive Sub Slap", "Analog Square Pluck", "Reese Detune Low", "Tight Funk Bass",
+                    "Distorted Beast", "PWM Warm Sub", "Filtered Click Bass", "Fat Unison Sub", "Classic 80s SynthBass"
+                ],
+                LEAD: [
+                    "Screaming Mono Lead", "Cosmic PWM Lead", "Unison Wall Lead", "Classic Solo Square", "Sync Flute Lead",
+                    "Detuned Saw Anthem", "Acid Searing Lead", "Glide Portamento", "Nostalgic Analog Lead", "Space Laser Solo",
+                    "70s Prog Lead", "Overdriven Crunch", "Sharp Reso Lead", "Soft Sine/Tri Lead", "Vibrant Vibrato Lead"
+                ],
+                PAD: [
+                    "Warm Vintage Strings", "Deep Space Drone", "Mono/Poly Lush Pad", "Dark Ambient Swell", "Pulsating PWM Pad",
+                    "Ethereal Tri Waves", "Slow Filter Attack", "Resonant Cosmic Pad", "Cinematic Tape Strings", "Celestial Horizon",
+                    "Analog Choir Swell", "Granular Texture Pad", "Detuned Ensemble", "Golden Hour Glow", "Floating Vacuum"
+                ],
+                ARP: [
+                    "Cycling Poly Sequence", "Upward Acid Arp", "Bouncy Octave Jump", "Classic Synthwave Arp", "Random S&H Sequence",
+                    "PWM Pulse Runner", "Chiptune Speed Arp", "Minor Chime Cascade", "Dark Berlin Runner", "Resonant Pluck Arp",
+                    "Trance Energy Pulse", "Gentle Lullaby Arp", "Unison Power Sequence", "Hypnotic Bass Line", "Echoing Starlight"
+                ],
+                ANALOG: [
+                    "Mono/Poly Brass 1", "Vintage Octave Stabs", "Classic 1981 Patch", "Round-Robin Poly", "Analog Horn Stack",
+                    "Raw VCO Saw Wave", "Drifting VCO Warmth", "Hard Sync Simulation", "Memphis Brass", "Polysynth Warmth",
+                    "Vintage Funk Stab", "Retro Synth Pluck", "80s Movie Cue", "Overdriven Analog", "Thick Quad VCO"
+                ],
+                KEYS: [
+                    "Analog Electric Piano", "Classic Synth Clav", "Mellow Tri Keys", "Warm Organ Stabs", "Resonant Bell Keys",
+                    "Plucked Harp Synth", "Detuned EPiano", "Percussive Mallet", "80s Pop Keys", "Vintage Poly Piano"
+                ],
+                SFX: [
+                    "Space Laser Blast", "Sci-Fi Wind Drone", "Sample & Hold Computer", "Explosion Rumble", "Submarine Sonar",
+                    "Alien Engine Idle", "Cosmic Sweep Down", "Chaos Mod Noise", "Retro Arcade SFX", "Self-Oscillation VCF",
+                    "Modular Rungler", "Laser Gun Rapid", "Emergency Siren", "Deep Space Pulsar", "Thermal Noise Rise"
+                ],
+                FX: [
+                    "Clean Boost Edge", "Warm Tube Drive", "Soft Clip Satin", "Hard Clip Razor", "Analog Overdrive",
+                    "Preamp Saturation", "Tape Machine Drive", "Gritty Amp Push", "Hot Transistor Crunch", "Velvet Distortion",
+                    "DaveC-Fury Overdrive Max", "Asymmetric Clip Heat", "Subtle Stereo Chorus", "Wide Ensemble Chorus", "Deep Detune Chorus",
+                    "Slow Swirl Chorus", "Fast Leslie Chorus", "Vintage CE-Style Chorus", "Lush Pad Chorus", "Metallic Chorus Sheen",
+                    "Underwater Chorus", "Dimension Ensemble", "Vibrato-Chorus Hybrid", "Tri-Voice Chorus Stack", "Slapback 80ms Echo",
+                    "Quarter-Note Sync Delay", "Dotted-Eighth Delay", "Ping-Pong Wide Delay", "Long Ambient Echo", "Short Tight Delay",
+                    "Feedback Trail Delay", "Dub-Style Echo Spin", "Tape Echo Warmth", "Digital Clean Delay", "Multi-Tap Cascade",
+                    "Rhythmic 1/16 Delay", "Infinite Feedback Loop", "Filtered Echo Wash", "Stereo Haas Delay", "Tempo-Locked Bounce",
+                    "Small Room Ambience", "Medium Hall Reverb", "Large Cathedral Hall", "Plate Studio Reverb", "Spring Tank Bounce",
+                    "Shimmer Space Reverb", "Dark Cave Reverb", "Bright Airy Room", "Gated Reverb Punch", "Reverse-Like Swell",
+                    "Infinite Drone Hall", "Short Booth Ambience", "Concert Stage Reverb", "Metallic Chamber", "Soft Plate Glow",
+                    "Frozen Reverb Tail", "8-Bit Arcade Crush", "12-Bit Sampler Dust", "Heavy Bit Reduction", "Sample-Rate Aliaser",
+                    "Lo-Fi Cassette Warp", "Game-Boy Chip Crush", "Telephone Line Crush", "Broken Radio Static", "Digital Glitch Crush",
+                    "Crunchy Sampler", "Ultra-Low Bit Noise", "Soft Bit Sizzle", "Drive Into Hall", "Chorus Then Echo",
+                    "Reverb Into Crush", "Delay Into Reverb", "Drive-Chorus-Delay Stack", "Ambient Wash Full", "Dub Echo + Spring",
+                    "Synced Delay + Chorus", "Crush Then Wide Chorus", "Tape Echo + Plate", "Hot Drive + Slapback", "Shimmer + Long Delay",
+                    "Gated Verb + Drive", "Ping-Pong + Ensemble", "Dark Hall + Feedback", "Bitcrush + Dub Delay", "Clean Delay Only",
+                    "Reverb Only Pad Space", "Chorus Only Width", "Drive Only Saturate", "Infinite Feedback Abyss", "Glitch Storm Crush",
+                    "Underwater Cathedral", "Syncopated Echo Grid", "Velvet Room Bloom", "Industrial Bit Factory", "Celestial Shimmer Delay",
+                    "Mono Slap Vintage", "Stereo Ocean Reverb", "DaveC-Fury FX Showcase", "Minimal Dry Edge", "Max Wet Immersion"
+                ]
+            };
+
+            // Wave pool for variety
+            const waves = ['sawtooth', 'square', 'triangle', 'sine', 'pwm'];
+            const keyModes = ['mono', 'unison', 'chord', 'cycling'];
+            const lfoWaves = ['triangle', 'sine', 'square', 'sawtooth', 'samplehold'];
+            const arpModes = ['up', 'down', 'updown', 'random', 'downup', 'converge', 'diverge', 'skip1_up', 'octave_up', 'zigzag', 'pendulum', 'as_played', 'double_up', 'shuffle', 'euclidean'];
+
+            // Deterministic unique hash-like variation based on id
+            function u(id, seed, min, max) {
+                const x = Math.sin(id * 12.9898 + seed * 78.233) * 43758.5453;
+                const t = x - Math.floor(x);
+                return min + t * (max - min);
+            }
+            function ui(id, seed, min, max) {
+                return Math.floor(u(id, seed, min, max + 1));
+            }
+            function pick(id, seed, arr) {
+                return arr[ui(id, seed, 0, arr.length - 1)];
+            }
+
+            categories.forEach(cat => {
+                const names = presetTemplates[cat.name];
+                for (let i = 0; i < cat.count; i++) {
+                    const id = cat.idStart + i;
+                    const name = names[i] || `${cat.name} Preset ${i + 1}`;
+
+                    // --- Base unique VCO configuration for EVERY preset ---
+                    const vco = [
+                        {
+                            wave: pick(id, 1, waves),
+                            octave: pick(id, 2, [4, 8, 16, 32]),
+                            detune: Math.round(u(id, 3, -18, 18))
+                        },
+                        {
+                            wave: pick(id, 4, waves),
+                            octave: pick(id, 5, [4, 8, 16, 32]),
+                            detune: Math.round(u(id, 6, -15, 15))
+                        },
+                        {
+                            wave: pick(id, 7, waves),
+                            octave: pick(id, 8, [4, 8, 16]),
+                            detune: Math.round(u(id, 9, -12, 12))
+                        },
+                        {
+                            wave: pick(id, 10, waves),
+                            octave: pick(id, 11, [8, 16, 32]),
+                            detune: Math.round(u(id, 12, -20, 20))
+                        }
+                    ];
+
+                    // Unique mix levels
+                    let mixVco1 = +u(id, 20, 0.35, 1.0).toFixed(2);
+                    let mixVco2 = +u(id, 21, 0.20, 0.95).toFixed(2);
+                    let mixVco3 = +u(id, 22, 0.10, 0.80).toFixed(2);
+                    let mixVco4 = +u(id, 23, 0.05, 0.70).toFixed(2);
+                    let mixNoise = +u(id, 24, 0.0, 0.25).toFixed(2);
+
+                    // Unique envelopes
+                    let vcaAttack  = +u(id, 30, 0.005, 0.15).toFixed(3);
+                    let vcaDecay   = +u(id, 31, 0.15, 1.2).toFixed(2);
+                    let vcaSustain = +u(id, 32, 0.15, 0.95).toFixed(2);
+                    let vcaRelease = +u(id, 33, 0.15, 1.5).toFixed(2);
+
+                    let vcfAttack  = +u(id, 34, 0.005, 0.4).toFixed(3);
+                    let vcfDecay   = +u(id, 35, 0.1, 1.0).toFixed(2);
+                    let vcfSustain = +u(id, 36, 0.05, 0.7).toFixed(2);
+                    let vcfRelease = +u(id, 37, 0.15, 1.8).toFixed(2);
+
+                    // Filter
+                    let filterCutoff    = Math.round(u(id, 40, 300, 6000));
+                    let filterRes       = +u(id, 41, 1.0, 14.0).toFixed(1);
+                    let filterEnvAmount = +u(id, 42, 0.15, 0.95).toFixed(2);
+                    let filterKeyTrack  = +u(id, 43, 0.1, 0.9).toFixed(2);
+
+                    // LFO
+                    let lfoRate        = +u(id, 50, 0.3, 12.0).toFixed(2);
+                    let lfoWave        = pick(id, 51, lfoWaves);
+                    let lfoPitchDepth  = +u(id, 52, 0.0, 0.25).toFixed(3);
+                    let lfoFilterDepth = +u(id, 53, 0.0, 0.7).toFixed(2);
+                    let lfoPwmDepth    = +u(id, 54, 0.0, 0.6).toFixed(2);
+
+                    // FX
+                    let fxDrive     = +u(id, 60, 0.0, 0.55).toFixed(2);
+                    let fxDelayTime = +u(id, 61, 0.12, 0.65).toFixed(2);
+                    let fxDelayMix  = +u(id, 62, 0.05, 0.45).toFixed(2);
+                    let fxDelayFeedback = +u(id, 63, 0.15, 0.55).toFixed(2);
+                    let fxDelaySync = false;
+                    let fxChorusRate = +u(id, 64, 0.2, 2.5).toFixed(2);
+                    let fxChorusDepth = +u(id, 65, 0.1, 0.7).toFixed(2);
+                    let fxChorusMix = +u(id, 66, 0.0, 0.25).toFixed(2);
+                    let fxReverbSize = +u(id, 67, 0.2, 0.7).toFixed(2);
+                    let fxReverbMix = +u(id, 68, 0.0, 0.2).toFixed(2);
+                    let fxBitcrush = +u(id, 69, 0.0, 0.1).toFixed(2);
+                    let fxDrivePre = true;
+                    let fxOrder = 'drive-chorus-delay-reverb';
+
+                    // Performance
+                    let keyMode      = pick(id, 70, keyModes);
+                    let unisonSpread = +u(id, 71, 0.08, 0.55).toFixed(2);
+                    let arpEnabled   = false;
+                    let arpBpm       = Math.round(u(id, 72, 90, 160));
+                    let arpMode      = pick(id, 73, arpModes);
+
+                    // ========== CATEGORY-SPECIFIC TUNING (keeps character while remaining unique) ==========
+                    if (cat.name === 'BASS') {
+                        // Force low octaves, stronger sub presence, shorter release, more drive
+                        vco[0].octave = pick(id, 80, [16, 32]);
+                        vco[1].octave = pick(id, 81, [16, 32]);
+                        vco[2].octave = pick(id, 82, [8, 16]);
+                        vco[0].wave = pick(id, 83, ['sawtooth', 'square', 'pwm']);
+                        vco[1].wave = pick(id, 84, ['sawtooth', 'square', 'triangle']);
+                        filterCutoff = Math.round(u(id, 85, 250, 1400));
+                        filterRes = +u(id, 86, 2.5, 10).toFixed(1);
+                        filterEnvAmount = +u(id, 87, 0.45, 0.95).toFixed(2);
+                        vcaSustain = +u(id, 88, 0.45, 0.85).toFixed(2);
+                        vcfSustain = +u(id, 89, 0.05, 0.35).toFixed(2);
+                        vcaRelease = +u(id, 90, 0.15, 0.7).toFixed(2);
+                        fxDrive = +u(id, 91, 0.15, 0.55).toFixed(2);
+                        mixNoise = +u(id, 92, 0.0, 0.15).toFixed(2);
+                        keyMode = pick(id, 93, ['mono', 'unison']);
+                        lfoPitchDepth = +u(id, 94, 0.0, 0.08).toFixed(3);
+                    }
+                    else if (cat.name === 'LEAD') {
+                        vco[0].wave = pick(id, 100, ['sawtooth', 'square', 'pwm', 'triangle']);
+                        vco[1].wave = pick(id, 101, ['sawtooth', 'square', 'pwm']);
+                        vco[0].octave = pick(id, 102, [8, 16]);
+                        vco[1].octave = pick(id, 103, [8, 16]);
+                        filterCutoff = Math.round(u(id, 104, 1800, 5500));
+                        filterRes = +u(id, 105, 3.0, 12).toFixed(1);
+                        filterEnvAmount = +u(id, 106, 0.4, 0.9).toFixed(2);
+                        vcaSustain = +u(id, 107, 0.7, 0.98).toFixed(2);
+                        lfoPitchDepth = +u(id, 108, 0.02, 0.18).toFixed(3);
+                        lfoFilterDepth = +u(id, 109, 0.1, 0.55).toFixed(2);
+                        fxDelayMix = +u(id, 110, 0.2, 0.45).toFixed(2);
+                        fxDrive = +u(id, 111, 0.1, 0.45).toFixed(2);
+                        keyMode = pick(id, 112, ['mono', 'unison']);
+                        unisonSpread = +u(id, 113, 0.15, 0.5).toFixed(2);
+                    }
+                    else if (cat.name === 'PAD') {
+                        vco[0].wave = pick(id, 120, ['sawtooth', 'triangle', 'sine', 'pwm']);
+                        vco[1].wave = pick(id, 121, ['sawtooth', 'triangle', 'sine']);
+                        vco[2].wave = pick(id, 122, ['triangle', 'sine', 'sawtooth']);
+                        vco[3].wave = pick(id, 123, ['triangle', 'sine', 'pwm']);
+                        // Slight detune for width
+                        vco[0].detune = Math.round(u(id, 124, -8, 8));
+                        vco[1].detune = Math.round(u(id, 125, -14, 14));
+                        vco[2].detune = Math.round(u(id, 126, -10, 10));
+                        vco[3].detune = Math.round(u(id, 127, -12, 12));
+                        filterCutoff = Math.round(u(id, 128, 800, 2800));
+                        filterRes = +u(id, 129, 1.5, 6).toFixed(1);
+                        vcaAttack = +u(id, 130, 0.4, 1.8).toFixed(2);
+                        vcaRelease = +u(id, 131, 0.8, 2.5).toFixed(2);
+                        vcfAttack = +u(id, 132, 0.5, 1.6).toFixed(2);
+                        vcfRelease = +u(id, 133, 1.0, 2.8).toFixed(2);
+                        vcaSustain = +u(id, 134, 0.65, 0.95).toFixed(2);
+                        fxDelayMix = +u(id, 135, 0.25, 0.5).toFixed(2);
+                        lfoFilterDepth = +u(id, 136, 0.15, 0.55).toFixed(2);
+                        lfoRate = +u(id, 137, 0.2, 3.5).toFixed(2);
+                        keyMode = 'chord';
+                        mixNoise = +u(id, 138, 0.0, 0.12).toFixed(2);
+                    }
+                    else if (cat.name === 'ARP') {
+                        arpEnabled = true;
+                        arpBpm = Math.round(u(id, 140, 95, 155));
+                        arpMode = pick(id, 141, arpModes);
+                        vcaAttack = +u(id, 142, 0.002, 0.03).toFixed(3);
+                        vcaDecay = +u(id, 143, 0.08, 0.4).toFixed(2);
+                        vcaSustain = +u(id, 144, 0.05, 0.35).toFixed(2);
+                        vcaRelease = +u(id, 145, 0.08, 0.35).toFixed(2);
+                        filterCutoff = Math.round(u(id, 146, 1200, 4500));
+                        filterRes = +u(id, 147, 3, 11).toFixed(1);
+                        filterEnvAmount = +u(id, 148, 0.35, 0.85).toFixed(2);
+                        vco[0].wave = pick(id, 149, ['sawtooth', 'square', 'pwm', 'triangle']);
+                        vco[1].wave = pick(id, 150, ['square', 'sawtooth', 'pwm']);
+                        keyMode = pick(id, 151, ['cycling', 'mono', 'unison']);
+                        fxDelayMix = +u(id, 152, 0.15, 0.4).toFixed(2);
+                        lfoFilterDepth = +u(id, 153, 0.1, 0.5).toFixed(2);
+                    }
+                    else if (cat.name === 'ANALOG') {
+                        vco[0].wave = pick(id, 160, ['sawtooth', 'square']);
+                        vco[1].wave = pick(id, 161, ['square', 'sawtooth', 'pwm']);
+                        vco[2].wave = pick(id, 162, ['sawtooth', 'triangle', 'square']);
+                        vco[3].wave = pick(id, 163, ['triangle', 'sawtooth', 'pwm']);
+                        vco[0].octave = pick(id, 164, [8, 16]);
+                        vco[1].octave = pick(id, 165, [8, 16]);
+                        filterCutoff = Math.round(u(id, 166, 1800, 4200));
+                        filterRes = +u(id, 167, 1.5, 7).toFixed(1);
+                        filterEnvAmount = +u(id, 168, 0.3, 0.75).toFixed(2);
+                        fxDrive = +u(id, 169, 0.1, 0.4).toFixed(2);
+                        keyMode = pick(id, 170, ['mono', 'cycling', 'unison']);
+                        lfoPwmDepth = +u(id, 171, 0.15, 0.55).toFixed(2);
+                        unisonSpread = +u(id, 172, 0.12, 0.45).toFixed(2);
+                        // Classic analog slightly detuned
+                        vco[1].detune = Math.round(u(id, 173, 3, 12));
+                        vco[2].detune = Math.round(u(id, 174, -10, -2));
+                    }
+                    else if (cat.name === 'KEYS') {
+                        vco[0].wave = pick(id, 180, ['triangle', 'sine', 'sawtooth']);
+                        vco[1].wave = pick(id, 181, ['triangle', 'sine', 'square']);
+                        vco[2].wave = pick(id, 182, ['sine', 'triangle']);
+                        vco[3].wave = pick(id, 183, ['triangle', 'sine', 'pwm']);
+                        vco[0].octave = pick(id, 184, [8, 16]);
+                        vco[1].octave = pick(id, 185, [8, 16]);
+                        filterCutoff = Math.round(u(id, 186, 1600, 3800));
+                        filterRes = +u(id, 187, 1.5, 6.5).toFixed(1);
+                        vcfDecay = +u(id, 188, 0.3, 0.9).toFixed(2);
+                        vcfSustain = +u(id, 189, 0.1, 0.4).toFixed(2);
+                        vcaAttack = +u(id, 190, 0.005, 0.04).toFixed(3);
+                        vcaDecay = +u(id, 191, 0.4, 1.1).toFixed(2);
+                        vcaSustain = +u(id, 192, 0.2, 0.55).toFixed(2);
+                        vcaRelease = +u(id, 193, 0.25, 0.8).toFixed(2);
+                        keyMode = 'chord';
+                        fxDelayMix = +u(id, 194, 0.1, 0.3).toFixed(2);
+                        mixNoise = +u(id, 195, 0.0, 0.08).toFixed(2);
+                        lfoPitchDepth = +u(id, 196, 0.0, 0.06).toFixed(3);
+                    }
+                    else if (cat.name === 'SFX') {
+                        filterRes = +u(id, 200, 8, 18).toFixed(1);
+                        filterCutoff = Math.round(u(id, 201, 400, 7000));
+                        filterEnvAmount = +u(id, 202, 0.5, 1.0).toFixed(2);
+                        lfoRate = +u(id, 203, 0.15, 18).toFixed(2);
+                        lfoWave = pick(id, 204, ['samplehold', 'square', 'sawtooth', 'triangle']);
+                        lfoFilterDepth = +u(id, 205, 0.4, 0.95).toFixed(2);
+                        lfoPitchDepth = +u(id, 206, 0.05, 0.35).toFixed(3);
+                        mixNoise = +u(id, 207, 0.25, 0.85).toFixed(2);
+                        fxDrive = +u(id, 208, 0.2, 0.6).toFixed(2);
+                        vcaAttack = +u(id, 209, 0.01, 0.6).toFixed(2);
+                        vcaRelease = +u(id, 210, 0.3, 2.0).toFixed(2);
+                        vcfAttack = +u(id, 211, 0.05, 1.2).toFixed(2);
+                        keyMode = pick(id, 212, ['mono', 'unison', 'cycling']);
+                        // Extreme detunes for weirdness
+                        vco[0].detune = Math.round(u(id, 213, -30, 30));
+                        vco[1].detune = Math.round(u(id, 214, -25, 25));
+                        vco[2].detune = Math.round(u(id, 215, -35, 35));
+                        vco[3].detune = Math.round(u(id, 216, -20, 20));
+                        vco[0].wave = pick(id, 217, waves);
+                        vco[1].wave = pick(id, 218, waves);
+                    }
+                    else if (cat.name === 'FX') {
+                        // Neutral-ish carrier tone so the EFFECT is the star
+                        vco[0].wave = pick(id, 300, ['sawtooth', 'square', 'triangle', 'pwm']);
+                        vco[1].wave = pick(id, 301, ['sawtooth', 'square', 'triangle']);
+                        vco[2].wave = pick(id, 302, ['triangle', 'sine', 'sawtooth']);
+                        vco[3].wave = pick(id, 303, ['sine', 'triangle']);
+                        vco[0].octave = 8; vco[1].octave = 8;
+                        vco[2].octave = pick(id, 304, [4, 8, 16]);
+                        vco[3].octave = 16;
+                        vco[0].detune = Math.round(u(id, 305, -4, 4));
+                        vco[1].detune = Math.round(u(id, 306, 2, 10));
+                        mixVco1 = 0.75; mixVco2 = 0.55; mixVco3 = 0.25; mixVco4 = 0.15;
+                        mixNoise = +u(id, 307, 0.0, 0.08).toFixed(2);
+                        filterCutoff = Math.round(u(id, 308, 1200, 4500));
+                        filterRes = +u(id, 309, 1.5, 6).toFixed(1);
+                        filterEnvAmount = +u(id, 310, 0.25, 0.6).toFixed(2);
+                        vcaAttack = 0.02; vcaDecay = 0.4; vcaSustain = 0.75; vcaRelease = 0.5;
+                        vcfAttack = 0.05; vcfDecay = 0.35; vcfSustain = 0.3; vcfRelease = 0.6;
+                        keyMode = pick(id, 311, ['mono', 'unison', 'chord']);
+                        lfoPitchDepth = 0; lfoFilterDepth = +u(id, 312, 0.0, 0.25).toFixed(2);
+
+                        // Reset FX then specialize by index families
+                        fxDrive = 0; fxChorusMix = 0; fxDelayMix = 0; fxReverbMix = 0; fxBitcrush = 0;
+                        fxDelayFeedback = 0.3; fxDelaySync = false; fxDrivePre = true;
+                        fxOrder = 'drive-chorus-delay-reverb';
+                        fxChorusRate = 0.8; fxChorusDepth = 0.35; fxReverbSize = 0.45; fxDelayTime = 0.3;
+
+                        if (i < 12) {
+                            // DRIVE family
+                            fxDrive = +(0.15 + i * 0.07).toFixed(2);
+                            fxDrivePre = (i % 2 === 0);
+                            fxOrder = 'drive-chorus-delay-reverb';
+                            fxChorusMix = +(i * 0.02).toFixed(2);
+                            fxDelayMix = 0.05; fxReverbMix = 0.04;
+                        } else if (i < 24) {
+                            // CHORUS family
+                            const ci = i - 12;
+                            fxChorusMix = +(0.25 + ci * 0.055).toFixed(2);
+                            fxChorusDepth = +(0.2 + ci * 0.06).toFixed(2);
+                            fxChorusRate = +(0.15 + ci * 0.22).toFixed(2);
+                            fxOrder = pick(id, 320, ['chorus-drive-delay-reverb', 'drive-chorus-delay-reverb']);
+                            fxDrive = +(0.05 + ci * 0.02).toFixed(2);
+                            fxDelayMix = 0.08; fxReverbMix = +(0.05 + ci * 0.02).toFixed(2);
+                        } else if (i < 40) {
+                            // DELAY family
+                            const di = i - 24;
+                            fxDelayMix = +(0.2 + di * 0.04).toFixed(2);
+                            fxDelayTime = +(0.08 + di * 0.055).toFixed(2);
+                            fxDelayFeedback = +(0.15 + di * 0.045).toFixed(2);
+                            fxDelaySync = (di % 3 === 0);
+                            if (fxDelaySync) { arpBpm = 110 + di * 3; fxDelayTime = +(0.25 + (di % 4) * 0.15).toFixed(2); }
+                            fxOrder = pick(id, 321, ['drive-delay-chorus-reverb', 'drive-chorus-delay-reverb']);
+                            fxChorusMix = +(0.05 + di * 0.015).toFixed(2);
+                            fxReverbMix = +(0.04 + di * 0.02).toFixed(2);
+                            fxDrive = +(0.05 + di * 0.015).toFixed(2);
+                        } else if (i < 56) {
+                            // REVERB family
+                            const ri = i - 40;
+                            fxReverbMix = +(0.2 + ri * 0.035).toFixed(2);
+                            fxReverbSize = +(0.15 + ri * 0.05).toFixed(2);
+                            fxOrder = pick(id, 322, ['drive-chorus-reverb-delay', 'drive-chorus-delay-reverb']);
+                            fxDelayMix = +(0.05 + ri * 0.015).toFixed(2);
+                            fxChorusMix = +(0.08 + ri * 0.02).toFixed(2);
+                            fxDrive = 0.08;
+                            vcaRelease = +(0.6 + ri * 0.08).toFixed(2);
+                        } else if (i < 68) {
+                            // BITCRUSH family
+                            const bi = i - 56;
+                            fxBitcrush = +(0.15 + bi * 0.07).toFixed(2);
+                            fxDrive = +(0.1 + bi * 0.04).toFixed(2);
+                            fxOrder = 'drive-chorus-delay-reverb';
+                            fxChorusMix = +(0.05 + bi * 0.03).toFixed(2);
+                            fxDelayMix = +(0.08 + bi * 0.02).toFixed(2);
+                            fxReverbMix = +(0.04 + bi * 0.02).toFixed(2);
+                            mixNoise = +(0.02 + bi * 0.02).toFixed(2);
+                        } else if (i < 88) {
+                            // COMBINED stacks
+                            const ki = i - 68;
+                            fxDrive = +(0.1 + (ki % 5) * 0.08).toFixed(2);
+                            fxChorusMix = +(0.15 + (ki % 6) * 0.08).toFixed(2);
+                            fxChorusDepth = +(0.25 + (ki % 4) * 0.12).toFixed(2);
+                            fxChorusRate = +(0.3 + (ki % 7) * 0.25).toFixed(2);
+                            fxDelayMix = +(0.15 + (ki % 5) * 0.1).toFixed(2);
+                            fxDelayTime = +(0.12 + (ki % 8) * 0.08).toFixed(2);
+                            fxDelayFeedback = +(0.2 + (ki % 6) * 0.08).toFixed(2);
+                            fxDelaySync = (ki % 4 === 0);
+                            fxReverbMix = +(0.12 + (ki % 7) * 0.07).toFixed(2);
+                            fxReverbSize = +(0.25 + (ki % 5) * 0.12).toFixed(2);
+                            fxBitcrush = +(0.0 + (ki % 5) * 0.08).toFixed(2);
+                            fxOrder = ['drive-chorus-delay-reverb', 'drive-delay-chorus-reverb', 'chorus-drive-delay-reverb', 'drive-chorus-reverb-delay'][ki % 4];
+                            fxDrivePre = (ki % 2 === 0);
+                        } else {
+                            // EXTREME / character 88-99
+                            const ei = i - 88;
+                            fxDrive = +(0.05 + ei * 0.07).toFixed(2);
+                            fxChorusMix = +(0.1 + ei * 0.06).toFixed(2);
+                            fxChorusDepth = +(0.3 + ei * 0.05).toFixed(2);
+                            fxChorusRate = +(0.2 + ei * 0.4).toFixed(2);
+                            fxDelayMix = +(0.15 + ei * 0.06).toFixed(2);
+                            fxDelayTime = +(0.1 + ei * 0.07).toFixed(2);
+                            fxDelayFeedback = +(0.25 + ei * 0.05).toFixed(2);
+                            fxDelaySync = (ei % 2 === 0);
+                            fxReverbMix = +(0.15 + ei * 0.05).toFixed(2);
+                            fxReverbSize = +(0.3 + ei * 0.06).toFixed(2);
+                            fxBitcrush = +(0.05 + ei * 0.07).toFixed(2);
+                            fxOrder = ['drive-chorus-delay-reverb', 'drive-delay-chorus-reverb', 'chorus-drive-delay-reverb', 'drive-chorus-reverb-delay'][ei % 4];
+                            if (ei === 10) { // Minimal Dry Edge
+                                fxDrive = 0.12; fxChorusMix = 0; fxDelayMix = 0; fxReverbMix = 0; fxBitcrush = 0;
+                            }
+                            if (ei === 11) { // Max Wet Immersion
+                                fxDrive = 0.25; fxChorusMix = 0.7; fxDelayMix = 0.55; fxDelayFeedback = 0.65;
+                                fxReverbMix = 0.7; fxReverbSize = 0.95; fxBitcrush = 0.15;
+                            }
+                        }
+                    }
+
+                    const p = {
+                        id,
+                        name: `${String(id).padStart(3, '0')}: [${cat.name}] ${name}`,
+                        category: cat.name,
+                        keyMode,
+                        unisonSpread,
+                        filterCutoff,
+                        filterRes,
+                        filterEnvAmount,
+                        filterKeyTrack,
+                        vcfAttack,
+                        vcfDecay,
+                        vcfSustain,
+                        vcfRelease,
+                        vcaAttack,
+                        vcaDecay,
+                        vcaSustain,
+                        vcaRelease,
+                        lfoRate,
+                        lfoWave,
+                        lfoPitchDepth,
+                        lfoFilterDepth,
+                        lfoPwmDepth,
+                        mixVco1,
+                        mixVco2,
+                        mixVco3,
+                        mixVco4,
+                        mixNoise,
+                        fxDrive,
+                        fxDrivePre,
+                        fxDelayTime,
+                        fxDelayMix,
+                        fxDelayFeedback,
+                        fxDelaySync,
+                        fxChorusRate,
+                        fxChorusDepth,
+                        fxChorusMix,
+                        fxReverbSize,
+                        fxReverbMix,
+                        fxBitcrush,
+                        fxOrder,
+                        arpEnabled,
+                        arpBpm,
+                        arpMode,
+                        vco
+                    };
+
+                    PRESET_BANK.push(p);
+                }
+            });
+        }
+
+        generate100Presets();
+
+        // Audio System Core Setup
+        let masterGainNode, driveNode, delayNode, delayMixNode, delayFeedbackNode, analyserNode;
+        let lfoNode, lfoGainPitch, lfoGainFilter, lfoGainPwm;
+        let chorusDelayL, chorusDelayR, chorusLfo, chorusMixNode, chorusDryNode;
+        let reverbConvolver, reverbMixNode, reverbDryNode;
+        let bitcrushNode, fxInputNode, fxOutputNode;
+        let noiseNode = null;
+        let noiseFilterNode = null;
+
+        let activeKeys = new Map();
+        let cyclingIndex = 0;
+        let arpKeys = [];
+        let arpTimer = null;
+        let arpIndex = 0;
+
+        function initAudio() {
+            if (isAudioInit) return;
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+
+            masterGainNode = audioCtx.createGain();
+            masterGainNode.gain.value = state.masterVolume;
+
+            // --- FX building blocks ---
+            driveNode = audioCtx.createWaveShaper();
+            updateDriveCurve();
+
+            // Stereo-ish delay (mono delay + feedback)
+            delayNode = audioCtx.createDelay(2.0);
+            delayNode.delayTime.value = state.fxDelayTime;
+            delayFeedbackNode = audioCtx.createGain();
+            delayFeedbackNode.gain.value = state.fxDelayFeedback;
+            delayMixNode = audioCtx.createGain();
+            delayMixNode.gain.value = state.fxDelayMix;
+            const delayDry = audioCtx.createGain();
+            delayDry.gain.value = 1;
+            delayNode.connect(delayFeedbackNode);
+            delayFeedbackNode.connect(delayNode);
+
+            // Chorus (modulated delay)
+            chorusDelayL = audioCtx.createDelay(0.05);
+            chorusDelayL.delayTime.value = 0.012;
+            chorusLfo = audioCtx.createOscillator();
+            chorusLfo.type = 'sine';
+            chorusLfo.frequency.value = state.fxChorusRate;
+            const chorusLfoGain = audioCtx.createGain();
+            chorusLfoGain.gain.value = 0.004 * state.fxChorusDepth;
+            chorusLfo.connect(chorusLfoGain);
+            chorusLfoGain.connect(chorusDelayL.delayTime);
+            chorusLfo.start();
+            chorusMixNode = audioCtx.createGain();
+            chorusMixNode.gain.value = state.fxChorusMix;
+            chorusDryNode = audioCtx.createGain();
+            chorusDryNode.gain.value = 1 - state.fxChorusMix * 0.5;
+
+            // Reverb (generated impulse)
+            reverbConvolver = audioCtx.createConvolver();
+            reverbConvolver.buffer = generateReverbImpulse(state.fxReverbSize);
+            reverbMixNode = audioCtx.createGain();
+            reverbMixNode.gain.value = state.fxReverbMix;
+            reverbDryNode = audioCtx.createGain();
+            reverbDryNode.gain.value = 1;
+
+            // Bitcrusher via WaveShaper (quantization curve) + optional rate feel
+            bitcrushNode = audioCtx.createWaveShaper();
+            updateBitcrushCurve();
+
+            analyserNode = audioCtx.createAnalyser();
+            analyserNode.fftSize = 1024;
+
+            // LFO
+            lfoNode = audioCtx.createOscillator();
+            lfoNode.type = state.lfoWave === 'samplehold' ? 'square' : state.lfoWave;
+            lfoNode.frequency.value = state.lfoRate;
+            lfoGainPitch = audioCtx.createGain();
+            lfoGainPitch.gain.value = state.lfoPitchDepth * 100;
+            lfoGainFilter = audioCtx.createGain();
+            lfoGainFilter.gain.value = state.lfoFilterDepth * 2000;
+            lfoGainPwm = audioCtx.createGain();
+            lfoGainPwm.gain.value = state.lfoPwmDepth;
+            lfoNode.connect(lfoGainPitch);
+            lfoNode.connect(lfoGainFilter);
+            lfoNode.connect(lfoGainPwm);
+            lfoNode.start();
+
+            // FX chain wiring helper
+            fxInputNode = audioCtx.createGain();
+            fxOutputNode = audioCtx.createGain();
+            rebuildFxChain();
+
+            masterGainNode.connect(fxInputNode);
+            fxOutputNode.connect(audioCtx.destination);
+            fxOutputNode.connect(analyserNode);
+
+            createNoiseGenerator();
+
+            isAudioInit = true;
+            document.getElementById('btn-audio-init').classList.replace('bg-amber-500', 'bg-emerald-500');
+            document.getElementById('btn-audio-init').innerText = "AUDIO ACTIVE";
+            requestAnimationFrame(drawScope);
+        }
+
+        function generateReverbImpulse(size) {
+            const rate = audioCtx.sampleRate;
+            const length = Math.max(0.1, size) * rate * 2.5;
+            const impulse = audioCtx.createBuffer(2, length, rate);
+            for (let c = 0; c < 2; c++) {
+                const ch = impulse.getChannelData(c);
+                for (let i = 0; i < length; i++) {
+                    ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2.2 + size);
+                }
+            }
+            return impulse;
+        }
+
+        function updateBitcrushCurve() {
+            if (!bitcrushNode) return;
+            const bits = Math.max(1, Math.round(16 - state.fxBitcrush * 14));
+            const steps = Math.pow(2, bits);
+            const n = 2048;
+            const curve = new Float32Array(n);
+            for (let i = 0; i < n; i++) {
+                let x = (i * 2) / n - 1;
+                curve[i] = state.fxBitcrush < 0.01 ? x : Math.round(x * steps) / steps;
+            }
+            bitcrushNode.curve = curve;
+            bitcrushNode.oversample = 'none';
+        }
+
+        function rebuildFxChain() {
+            if (!fxInputNode || !audioCtx) return;
+            try {
+                fxInputNode.disconnect();
+                driveNode.disconnect();
+                delayNode.disconnect();
+                delayMixNode.disconnect();
+                chorusDelayL.disconnect();
+                chorusMixNode.disconnect();
+                chorusDryNode.disconnect();
+                reverbConvolver.disconnect();
+                reverbMixNode.disconnect();
+                reverbDryNode.disconnect();
+                bitcrushNode.disconnect();
+            } catch (e) {}
+
+            // Build ordered chain: input -> stages -> output
+            const order = (state.fxOrder || 'drive-chorus-delay-reverb').split('-');
+            const stages = {
+                drive: (inp, out) => {
+                    inp.connect(bitcrushNode);
+                    bitcrushNode.connect(driveNode);
+                    driveNode.connect(out);
+                },
+                chorus: (inp, out) => {
+                    inp.connect(chorusDryNode);
+                    chorusDryNode.connect(out);
+                    inp.connect(chorusDelayL);
+                    chorusDelayL.connect(chorusMixNode);
+                    chorusMixNode.connect(out);
+                },
+                delay: (inp, out) => {
+                    const dry = audioCtx.createGain();
+                    dry.gain.value = 1;
+                    inp.connect(dry);
+                    dry.connect(out);
+                    inp.connect(delayNode);
+                    delayNode.connect(delayMixNode);
+                    delayMixNode.connect(out);
+                },
+                reverb: (inp, out) => {
+                    inp.connect(reverbDryNode);
+                    reverbDryNode.connect(out);
+                    inp.connect(reverbConvolver);
+                    reverbConvolver.connect(reverbMixNode);
+                    reverbMixNode.connect(out);
+                }
+            };
+
+            let current = fxInputNode;
+            order.forEach((name, idx) => {
+                const next = (idx === order.length - 1) ? fxOutputNode : audioCtx.createGain();
+                if (stages[name]) stages[name](current, next);
+                else current.connect(next);
+                current = next;
+            });
+
+            // Keep delay feedback loop alive
+            try {
+                delayNode.connect(delayFeedbackNode);
+                delayFeedbackNode.connect(delayNode);
+            } catch (e) {}
+        }
+
+        function createNoiseGenerator() {
+            if (noiseNode) {
+                try { noiseNode.stop(); noiseNode.disconnect(); } catch(e) {}
+            }
+            const bufferSize = audioCtx.sampleRate * 2;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = buffer.getChannelData(0);
+            const type = state.noiseType || 'white';
+
+            if (type === 'pink') {
+                // Voss-McCartney pink noise approximation
+                let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+                for (let i = 0; i < bufferSize; i++) {
+                    const w = Math.random() * 2 - 1;
+                    b0 = 0.99886 * b0 + w * 0.0555179;
+                    b1 = 0.99332 * b1 + w * 0.0750759;
+                    b2 = 0.96900 * b2 + w * 0.1538520;
+                    b3 = 0.86650 * b3 + w * 0.3104856;
+                    b4 = 0.55000 * b4 + w * 0.5329522;
+                    b5 = -0.7616 * b5 - w * 0.0168980;
+                    output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
+                    b6 = w * 0.115926;
+                }
+            } else if (type === 'metallic') {
+                // Metallic: band-limited noise with resonant character
+                let prev = 0;
+                for (let i = 0; i < bufferSize; i++) {
+                    const w = Math.random() * 2 - 1;
+                    // simple resonator-ish coloring
+                    const t = i / audioCtx.sampleRate;
+                    const ring = Math.sin(2 * Math.PI * 1200 * t) * 0.3 + Math.sin(2 * Math.PI * 2400 * t) * 0.15;
+                    prev = prev * 0.95 + w * 0.5;
+                    output[i] = (prev + ring * w) * 0.7;
+                }
+            } else {
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+            }
+
+            noiseNode = audioCtx.createBufferSource();
+            noiseNode.buffer = buffer;
+            noiseNode.loop = true;
+
+            noiseFilterNode = audioCtx.createBiquadFilter();
+            noiseFilterNode.type = type === 'metallic' ? 'bandpass' : 'highpass';
+            noiseFilterNode.frequency.value = type === 'metallic' ? 1800 : 80;
+            noiseFilterNode.Q.value = type === 'metallic' ? 4 : 0.7;
+
+            const noiseGain = audioCtx.createGain();
+            noiseGain.gain.value = state.mixNoise;
+
+            noiseNode.connect(noiseFilterNode);
+            noiseFilterNode.connect(noiseGain);
+            state.globalNoiseGain = noiseGain;
+            noiseNode.start();
+        }
+
+        function updateDriveCurve() {
+            if (!driveNode) return;
+            const amount = state.fxDrive;
+            const hot = state.fxDrivePre ? 1.4 : 1.0;
+            const k = amount * 50 * hot;
+            const n_samples = 44100;
+            const curve = new Float32Array(n_samples);
+            const deg = Math.PI / 180;
+            for (let i = 0; i < n_samples; ++i) {
+                let x = (i * 2) / n_samples - 1;
+                if (amount < 0.01) {
+                    curve[i] = x;
+                } else {
+                    // Soft clip + optional harder character
+                    curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+                }
+            }
+            driveNode.curve = curve;
+            driveNode.oversample = '2x';
+        }
+
+        function noteOn(noteNumber, velocity = 1.0) {
+            if (!isAudioInit) initAudio();
+            velocity = Math.max(0.01, Math.min(1, velocity));
+
+            const noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+            const name = noteNames[noteNumber % 12] + Math.floor(noteNumber / 12 - 1);
+            document.getElementById('active-note-display').innerText = `NOTE ON: ${name} (${noteNumber}) vel:${Math.round(velocity*127)}`;
+
+            keysHeldCount++;
+
+            if (state.arpEnabled) {
+                if (!arpKeys.includes(noteNumber)) arpKeys.push(noteNumber);
+                if (!arpTimer) startArpeggiator();
+                return;
+            }
+
+            playVoice(noteNumber, velocity);
+        }
+
+        function noteOff(noteNumber) {
+            document.getElementById('active-note-display').innerText = `READY`;
+            keysHeldCount = Math.max(0, keysHeldCount - 1);
+
+            if (state.arpEnabled) {
+                arpKeys = arpKeys.filter(k => k !== noteNumber);
+                if (arpKeys.length === 0 && arpTimer) {
+                    clearInterval(arpTimer);
+                    arpTimer = null;
+                }
+                return;
+            }
+
+            stopVoice(noteNumber);
+        }
+
+        function playVoice(noteNumber, velocity = 1.0) {
+            const isLegato = state.keyMode === 'mono' && activeKeys.size > 0;
+            if (state.keyMode === 'mono' && activeKeys.size > 0) {
+                activeKeys.forEach((_, key) => stopVoice(key));
+            }
+
+            const now = audioCtx.currentTime;
+            const targetFreq = 440 * Math.pow(2, (noteNumber - 69) / 12);
+
+            // Glide decision
+            let startFreq = targetFreq;
+            const glideOn = state.glideMode === 'always' || (state.glideMode === 'legato' && isLegato);
+            if (glideOn && state.glideTime > 0.001) {
+                startFreq = lastNoteFreq || targetFreq;
+            }
+            lastNoteFreq = targetFreq;
+            lastNoteNumber = noteNumber;
+
+            // Velocity scaling
+            const velAmp = 1 - state.velocityAmp * (1 - velocity);
+            const velFilt = state.velocityFilter * (velocity - 0.5) * 2; // -velFilt..+velFilt around center
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            const baseCutoff = Math.min(18000, Math.max(20, state.filterCutoff * (1 + velFilt * 0.5) + (targetFreq * state.filterKeyTrack * 0.1)));
+            filter.frequency.value = baseCutoff;
+            filter.Q.value = state.filterRes;
+
+            lfoGainFilter.connect(filter.frequency);
+
+            const envAmount = state.filterEnvAmount * 8000 * (0.5 + velocity * 0.5);
+            filter.frequency.cancelScheduledValues(now);
+            filter.frequency.setValueAtTime(baseCutoff, now);
+            filter.frequency.linearRampToValueAtTime(baseCutoff + envAmount, now + state.vcfAttack);
+            filter.frequency.exponentialRampToValueAtTime(Math.max(20, baseCutoff + envAmount * state.vcfSustain), now + state.vcfAttack + state.vcfDecay);
+
+            const vcaGain = audioCtx.createGain();
+            const peak = Math.max(0.0001, velAmp);
+            vcaGain.gain.setValueAtTime(0.0001, now);
+            vcaGain.gain.linearRampToValueAtTime(peak, now + state.vcaAttack);
+            vcaGain.gain.exponentialRampToValueAtTime(Math.max(0.0001, state.vcaSustain * peak), now + state.vcaAttack + state.vcaDecay);
+
+            filter.connect(vcaGain);
+            vcaGain.connect(masterGainNode);
+
+            if (state.globalNoiseGain) {
+                try { state.globalNoiseGain.disconnect(); } catch(e) {}
+                state.globalNoiseGain.connect(filter);
+                state.globalNoiseGain.gain.value = state.mixNoise;
+            }
+
+            const vcoOscillators = [];
+            const vcoLeds = document.querySelectorAll('.vco-active-led');
+            vcoLeds.forEach(led => led.classList.replace('bg-amber-500', 'bg-slate-700'));
+
+            const glideTime = glideOn ? state.glideTime : 0;
+
+            if (state.keyMode === 'cycling') {
+                const vcoIdx = cyclingIndex % 4;
+                cyclingIndex++;
+                createOscillatorInstance(vcoIdx, startFreq, targetFreq, glideTime, filter, vcoOscillators, 1.0);
+                if (vcoLeds[vcoIdx]) vcoLeds[vcoIdx].classList.replace('bg-slate-700', 'bg-amber-500');
+
+            } else if (state.keyMode === 'unison') {
+                for (let i = 0; i < 4; i++) {
+                    const spreadDetune = (i - 1.5) * (state.unisonSpread * 25);
+                    createOscillatorInstance(i, startFreq, targetFreq, glideTime, filter, vcoOscillators, 0.25, spreadDetune);
+                    if (vcoLeds[i]) vcoLeds[i].classList.replace('bg-slate-700', 'bg-amber-500');
+                }
+
+            } else {
+                for (let i = 0; i < 4; i++) {
+                    createOscillatorInstance(i, startFreq, targetFreq, glideTime, filter, vcoOscillators, 0.4);
+                    if (vcoLeds[i]) vcoLeds[i].classList.replace('bg-slate-700', 'bg-amber-500');
+                }
+            }
+
+            activeKeys.set(noteNumber, { filter, vcaGain, vcoOscillators, startTime: now });
+        }
+
+        function createOscillatorInstance(idx, startFreq, targetFreq, glideTime, targetNode, oscArray, gainScale = 1.0, extraDetune = 0) {
+            const vcoConfig = state.vco[idx];
+            const octaveFactor = vcoConfig.octave / 8;
+            let totalDetune = vcoConfig.detune + extraDetune;
+
+            // Hard sync approximation: VCO2 frequency forced to integer harmonic of VCO1 base
+            let oscStart = startFreq * octaveFactor;
+            let oscTarget = targetFreq * octaveFactor;
+            if (state.hardSync && idx === 1) {
+                const masterOct = (state.vco[0].octave || 8) / 8;
+                const ratio = Math.max(1, Math.round(octaveFactor / masterOct));
+                oscStart = startFreq * masterOct * ratio;
+                oscTarget = targetFreq * masterOct * ratio;
+                totalDetune = state.vco[0].detune + extraDetune + (vcoConfig.detune * 0.15);
+            }
+
+            const now = audioCtx.currentTime;
+            const vcoGain = audioCtx.createGain();
+            const mixValue = state[`mixVco${idx + 1}`] * gainScale;
+            vcoGain.gain.value = mixValue;
+
+            let oscNode;
+            if (vcoConfig.wave === 'pwm') {
+                oscNode = audioCtx.createOscillator();
+                oscNode.type = 'sawtooth';
+                const oscNode2 = audioCtx.createOscillator();
+                oscNode2.type = 'sawtooth';
+
+                const inverter = audioCtx.createGain();
+                inverter.gain.value = -1;
+                oscNode2.connect(inverter);
+                oscNode.connect(vcoGain);
+                inverter.connect(vcoGain);
+                lfoGainPwm.connect(oscNode2.detune);
+
+                if (glideTime > 0.001) {
+                    oscNode.frequency.setValueAtTime(oscStart, now);
+                    oscNode.frequency.linearRampToValueAtTime(oscTarget, now + glideTime);
+                    oscNode2.frequency.setValueAtTime(oscStart, now);
+                    oscNode2.frequency.linearRampToValueAtTime(oscTarget, now + glideTime);
+                } else {
+                    oscNode.frequency.value = oscTarget;
+                    oscNode2.frequency.value = oscTarget;
+                }
+                oscNode.detune.value = totalDetune;
+                oscNode2.detune.value = totalDetune + 10;
+                oscNode.start();
+                oscNode2.start();
+                oscArray.push(oscNode, oscNode2);
+            } else {
+                oscNode = audioCtx.createOscillator();
+                oscNode.type = vcoConfig.wave === 'sine' ? 'sine' : (vcoConfig.wave || 'sawtooth');
+                if (glideTime > 0.001) {
+                    oscNode.frequency.setValueAtTime(oscStart, now);
+                    oscNode.frequency.linearRampToValueAtTime(oscTarget, now + glideTime);
+                } else {
+                    oscNode.frequency.value = oscTarget;
+                }
+                oscNode.detune.value = totalDetune;
+                lfoGainPitch.connect(oscNode.frequency);
+                oscNode.connect(vcoGain);
+                oscNode.start();
+                oscArray.push(oscNode);
+            }
+
+            vcoGain.connect(targetNode);
+        }
+
+        function stopVoice(noteNumber) {
+            const voice = activeKeys.get(noteNumber);
+            if (!voice) return;
+
+            const now = audioCtx.currentTime;
+
+            voice.vcaGain.gain.cancelScheduledValues(now);
+            voice.vcaGain.gain.setValueAtTime(voice.vcaGain.gain.value, now);
+            voice.vcaGain.gain.exponentialRampToValueAtTime(0.0001, now + state.vcaRelease);
+
+            voice.filter.frequency.cancelScheduledValues(now);
+            voice.filter.frequency.setValueAtTime(voice.filter.frequency.value, now);
+            voice.filter.frequency.exponentialRampToValueAtTime(20, now + state.vcfRelease);
+
+            setTimeout(() => {
+                voice.vcoOscillators.forEach(osc => {
+                    try { osc.stop(); osc.disconnect(); } catch (e) {}
+                });
+                voice.filter.disconnect();
+                voice.vcaGain.disconnect();
+                
+                const vcoLeds = document.querySelectorAll('.vco-active-led');
+                vcoLeds.forEach(led => led.classList.replace('bg-amber-500', 'bg-slate-700'));
+            }, state.vcaRelease * 1000 + 100);
+
+            activeKeys.delete(noteNumber);
+        }
+
+        // ---- Arpeggio sequence builders (54 modes) ----
+        function buildArpSequence(heldOrder, mode) {
+            const n = heldOrder.length;
+            if (n === 0) return [];
+            const sorted = [...heldOrder].sort((a, b) => a - b);
+            const rev = [...sorted].reverse();
+            const mid = Math.floor(n / 2);
+
+            const updown = () => {
+                if (n === 1) return sorted.slice();
+                return sorted.concat(rev.slice(1, -1));
+            };
+            const downup = () => {
+                if (n === 1) return rev.slice();
+                return rev.concat(sorted.slice(1, -1));
+            };
+            const skip = (arr, step) => {
+                const out = [];
+                let i = 0, seen = 0;
+                const used = new Set();
+                while (seen < n * 2 && out.length < n * 3) {
+                    if (!used.has(i % n) || out.length < n) {
+                        out.push(arr[i % n]);
+                        used.add(i % n);
+                        seen++;
+                    }
+                    i += step;
+                }
+                // ensure all notes appear
+                for (let k = 0; k < n; k++) if (!out.includes(arr[k])) out.push(arr[k]);
+                return out;
+            };
+            const withOct = (arr, octs) => {
+                const out = [];
+                arr.forEach(note => {
+                    octs.forEach(o => out.push(Math.min(127, Math.max(0, note + o * 12))));
+                });
+                return out;
+            };
+
+            switch (mode) {
+                case 'up': return sorted;
+                case 'down': return rev;
+                case 'updown': return updown();
+                case 'downup': return downup();
+                case 'random': return sorted; // handled live
+                case 'as_played': return heldOrder.slice();
+                case 'as_played_rev': return heldOrder.slice().reverse();
+                case 'converge': {
+                    const out = [];
+                    let lo = 0, hi = n - 1;
+                    while (lo <= hi) {
+                        out.push(sorted[lo++]);
+                        if (lo <= hi) out.push(sorted[hi--]);
+                    }
+                    return out;
+                }
+                case 'diverge': {
+                    const out = [];
+                    // start from middle outward
+                    const order = [];
+                    for (let d = 0; d <= mid; d++) {
+                        if (mid - d >= 0) order.push(mid - d);
+                        if (d > 0 && mid + d < n) order.push(mid + d);
+                    }
+                    return order.map(i => sorted[i]);
+                }
+                case 'converge_diverge': {
+                    const c = [];
+                    let lo = 0, hi = n - 1;
+                    while (lo <= hi) { c.push(sorted[lo++]); if (lo <= hi) c.push(sorted[hi--]); }
+                    const d = buildArpSequence(heldOrder, 'diverge');
+                    return c.concat(d.slice(1));
+                }
+                case 'pendulum': return updown();
+                case 'zigzag': {
+                    const out = [];
+                    for (let i = 0; i < n; i++) {
+                        out.push(sorted[i]);
+                        if (i + 1 < n) out.push(sorted[n - 1 - i]);
+                    }
+                    return out;
+                }
+                case 'skip1_up': return skip(sorted, 2);
+                case 'skip1_down': return skip(rev, 2);
+                case 'skip2_up': return skip(sorted, 3);
+                case 'skip2_down': return skip(rev, 3);
+                case 'double_up': return sorted.flatMap(x => [x, x]);
+                case 'double_down': return rev.flatMap(x => [x, x]);
+                case 'triple_up': return sorted.flatMap(x => [x, x, x]);
+                case 'octave_up': return withOct(sorted, [0, 1]);
+                case 'octave_down': return withOct(sorted, [0, -1]);
+                case 'octave_updown': return withOct(sorted, [0, 1]).concat(withOct(rev, [0, -1]).slice(1));
+                case 'up_octave_bounce': {
+                    const out = [];
+                    sorted.forEach(x => { out.push(x); out.push(Math.min(127, x + 12)); });
+                    return out;
+                }
+                case 'down_octave_bounce': {
+                    const out = [];
+                    rev.forEach(x => { out.push(x); out.push(Math.max(0, x - 12)); });
+                    return out;
+                }
+                case 'pinky_up': {
+                    // highest, then up from low
+                    if (n === 1) return sorted;
+                    return [rev[0], ...sorted.slice(0, -1)];
+                }
+                case 'pinky_down': {
+                    if (n === 1) return sorted;
+                    return [sorted[0], ...rev.slice(0, -1)];
+                }
+                case 'thumb_up': {
+                    // lowest, then rest up
+                    if (n === 1) return sorted;
+                    return [sorted[0], ...sorted.slice(1)];
+                }
+                case 'thumb_down': {
+                    if (n === 1) return sorted;
+                    return [sorted[0], ...rev.slice(0, -1)];
+                }
+                case 'outside_in': {
+                    const out = [];
+                    let lo = 0, hi = n - 1;
+                    while (lo <= hi) {
+                        if (lo === hi) out.push(sorted[lo]);
+                        else { out.push(sorted[lo]); out.push(sorted[hi]); }
+                        lo++; hi--;
+                    }
+                    return out;
+                }
+                case 'inside_out': return buildArpSequence(heldOrder, 'diverge');
+                case 'rotate_left': return heldOrder.slice(); // rotated live by index
+                case 'rotate_right': return heldOrder.slice();
+                case 'pair_up': {
+                    const out = [];
+                    for (let i = 0; i < n; i += 2) {
+                        out.push(sorted[i]);
+                        if (i + 1 < n) out.push(sorted[i + 1]);
+                    }
+                    return out;
+                }
+                case 'pair_down': {
+                    const out = [];
+                    for (let i = n - 1; i >= 0; i -= 2) {
+                        out.push(sorted[i]);
+                        if (i - 1 >= 0) out.push(sorted[i - 1]);
+                    }
+                    return out;
+                }
+                case 'leapfrog_up': {
+                    const a = sorted.filter((_, i) => i % 2 === 0);
+                    const b = sorted.filter((_, i) => i % 2 === 1);
+                    return a.concat(b);
+                }
+                case 'leapfrog_down': {
+                    const a = rev.filter((_, i) => i % 2 === 0);
+                    const b = rev.filter((_, i) => i % 2 === 1);
+                    return a.concat(b);
+                }
+                case 'mirror': {
+                    return sorted.concat(rev);
+                }
+                case 'stagger_up': {
+                    const out = [];
+                    for (let i = 0; i < n; i++) {
+                        out.push(sorted[i]);
+                        out.push(sorted[(i + mid) % n]);
+                    }
+                    return out;
+                }
+                case 'stagger_down': {
+                    const out = [];
+                    for (let i = 0; i < n; i++) {
+                        out.push(rev[i]);
+                        out.push(rev[(i + mid) % n]);
+                    }
+                    return out;
+                }
+                case 'chord_burst': return sorted; // all played as rapid burst handled live
+                case 'repeat_low': {
+                    const out = [];
+                    sorted.forEach((x, i) => { out.push(sorted[0]); if (i > 0) out.push(x); });
+                    return out.length ? out : sorted;
+                }
+                case 'repeat_high': {
+                    const out = [];
+                    sorted.forEach((x, i) => { out.push(rev[0]); if (i > 0) out.push(x); });
+                    return out.length ? out : sorted;
+                }
+                case 'repeat_root': return buildArpSequence(heldOrder, 'repeat_low');
+                case 'up_x2_down': return sorted.concat(sorted).concat(rev);
+                case 'down_x2_up': return rev.concat(rev).concat(sorted);
+                case 'spiral_up': {
+                    const out = [];
+                    for (let layer = 0; layer < n; layer++) {
+                        for (let i = layer; i < n - layer; i++) out.push(sorted[i]);
+                    }
+                    return out.length ? out : sorted;
+                }
+                case 'spiral_down': {
+                    const out = [];
+                    for (let layer = 0; layer < n; layer++) {
+                        for (let i = n - 1 - layer; i >= layer; i--) out.push(sorted[i]);
+                    }
+                    return out.length ? out : sorted;
+                }
+                case 'brownian': return sorted; // live random walk
+                case 'shuffle': {
+                    const a = sorted.slice();
+                    for (let i = a.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [a[i], a[j]] = [a[j], a[i]];
+                    }
+                    return a;
+                }
+                case 'binary': {
+                    // index bit-reversal style order
+                    const out = [];
+                    const order = [];
+                    for (let i = 0; i < n; i++) order.push(i);
+                    order.sort((a, b) => {
+                        const bits = Math.ceil(Math.log2(Math.max(n, 2)));
+                        const revBits = (x) => {
+                            let r = 0;
+                            for (let k = 0; k < bits; k++) r = (r << 1) | ((x >> k) & 1);
+                            return r;
+                        };
+                        return revBits(a) - revBits(b);
+                    });
+                    return order.map(i => sorted[i]);
+                }
+                case 'fibonacci': {
+                    const out = [];
+                    let a = 0, b = 1;
+                    for (let i = 0; i < n * 2; i++) {
+                        out.push(sorted[a % n]);
+                        const c = a + b; a = b; b = c || 1;
+                    }
+                    return out;
+                }
+                case 'euclidean': {
+                    // distribute hits evenly across notes
+                    const steps = n * 2;
+                    const hits = n;
+                    const out = [];
+                    let acc = 0;
+                    for (let i = 0; i < steps; i++) {
+                        acc += hits;
+                        if (acc >= steps) {
+                            acc -= steps;
+                            out.push(sorted[i % n]);
+                        } else {
+                            out.push(sorted[(i + mid) % n]);
+                        }
+                    }
+                    return out;
+                }
+                case 'interleave': {
+                    const low = sorted.slice(0, Math.ceil(n / 2));
+                    const high = sorted.slice(Math.ceil(n / 2));
+                    const out = [];
+                    for (let i = 0; i < Math.max(low.length, high.length); i++) {
+                        if (i < low.length) out.push(low[i]);
+                        if (i < high.length) out.push(high[i]);
+                    }
+                    return out;
+                }
+                case 'hemiola': {
+                    // 3-pattern against 2: cycle notes in 3 then 2 groupings
+                    const out = [];
+                    for (let i = 0; i < n * 3; i++) out.push(sorted[i % n]);
+                    for (let i = 0; i < n * 2; i++) out.push(sorted[(i * 2) % n]);
+                    return out;
+                }
+                default: return sorted;
+            }
+        }
+
+        let arpBrownianPos = 0;
+        let arpShuffleCache = null;
+        let arpShuffleKey = '';
+
+        function startArpeggiator() {
+            if (arpTimer) clearInterval(arpTimer);
+            const intervalMs = (60 / Math.max(40, state.arpBpm) / 4) * 1000;
+            arpBrownianPos = 0;
+            arpShuffleCache = null;
+            arpShuffleKey = '';
+
+            arpTimer = setInterval(() => {
+                if (arpKeys.length === 0) return;
+
+                const mode = state.arpMode || 'up';
+                const held = arpKeys.slice();
+                const sorted = [...held].sort((a, b) => a - b);
+                let currentNote;
+
+                if (mode === 'random') {
+                    currentNote = sorted[Math.floor(Math.random() * sorted.length)];
+                } else if (mode === 'brownian') {
+                    if (arpBrownianPos < 0 || arpBrownianPos >= sorted.length) arpBrownianPos = 0;
+                    currentNote = sorted[arpBrownianPos];
+                    arpBrownianPos += Math.random() < 0.5 ? -1 : 1;
+                    if (arpBrownianPos < 0) arpBrownianPos = 1;
+                    if (arpBrownianPos >= sorted.length) arpBrownianPos = sorted.length - 2;
+                    if (sorted.length === 1) arpBrownianPos = 0;
+                } else if (mode === 'chord_burst') {
+                    // play all notes nearly together
+                    sorted.forEach((note, i) => {
+                        setTimeout(() => {
+                            playVoice(note, 0.85);
+                            setTimeout(() => stopVoice(note), intervalMs * 0.7);
+                        }, i * 12);
+                    });
+                    arpIndex++;
+                    return;
+                } else if (mode === 'shuffle') {
+                    const key = held.join(',');
+                    if (key !== arpShuffleKey || !arpShuffleCache) {
+                        arpShuffleCache = buildArpSequence(held, 'shuffle');
+                        arpShuffleKey = key;
+                    }
+                    const seq = arpShuffleCache;
+                    currentNote = seq[arpIndex % seq.length];
+                    if ((arpIndex + 1) % seq.length === 0) {
+                        arpShuffleCache = buildArpSequence(held, 'shuffle');
+                    }
+                } else if (mode === 'rotate_left') {
+                    const rot = held.slice(arpIndex % held.length).concat(held.slice(0, arpIndex % held.length));
+                    currentNote = rot[0];
+                } else if (mode === 'rotate_right') {
+                    const k = arpIndex % held.length;
+                    const rot = held.slice(held.length - k).concat(held.slice(0, held.length - k));
+                    currentNote = rot[0];
+                } else {
+                    const seq = buildArpSequence(held, mode);
+                    if (!seq.length) return;
+                    currentNote = seq[arpIndex % seq.length];
+                }
+
+                playVoice(currentNote, 0.85);
+                setTimeout(() => stopVoice(currentNote), intervalMs * 0.8);
+                arpIndex++;
+            }, intervalMs);
+        }
+
+        let visualizerMode = 'wave';
+        function drawScope() {
+            const canvas = document.getElementById('scope-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+
+            ctx.fillStyle = '#031005';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (visualizerMode === 'wave') {
+                const timeData = new Uint8Array(analyserNode.frequencyBinCount);
+                analyserNode.getByteTimeDomainData(timeData);
+
+                ctx.lineWidth = 1.8;
+                ctx.strokeStyle = '#00ff66';
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = '#00ff66';
+                ctx.beginPath();
+
+                const sliceWidth = canvas.width / timeData.length;
+                let x = 0;
+                for (let i = 0; i < timeData.length; i++) {
+                    const v = timeData[i] / 128.0;
+                    const y = (v * canvas.height) / 2;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                    x += sliceWidth;
+                }
+                ctx.stroke();
+
+            } else {
+                const freqData = new Uint8Array(analyserNode.frequencyBinCount);
+                analyserNode.getByteFrequencyData(freqData);
+
+                const barWidth = (canvas.width / freqData.length) * 2.5;
+                let x = 0;
+                for (let i = 0; i < freqData.length; i++) {
+                    const barHeight = (freqData[i] / 255) * canvas.height;
+                    ctx.fillStyle = `rgb(0, ${Math.min(255, freqData[i] + 100)}, 100)`;
+                    ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                    x += barWidth + 1;
+                }
+            }
+
+            requestAnimationFrame(drawScope);
+        }
+
+        // Piano layout: 2 octaves from C to C (25 keys = 15 white + 10 black)
+        // MIDI: octaveShift 3 → C3 (MIDI 48) through C5 (MIDI 72)
+        const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const BLACK_PC = new Set([1, 3, 6, 8, 10]); // C# D# F# G# A#
+
+        // Computer keyboard → chromatic offset from base C (2 octaves)
+        // White (bottom row): Z X C V B N M , . /  and  Q (extra C)
+        // Black (upper): S D G H J  and  2 3 5 6 7
+        const qwertyMap = {
+            // Octave 1 whites
+            'KeyZ': 0,   // C
+            'KeyX': 2,   // D
+            'KeyC': 4,   // E
+            'KeyV': 5,   // F
+            'KeyB': 7,   // G
+            'KeyN': 9,   // A
+            'KeyM': 11,  // B
+            // Octave 2 whites
+            'Comma': 12,     // C
+            'Period': 14,    // D
+            'Slash': 16,     // E
+            // Black keys octave 1
+            'KeyS': 1,   // C#
+            'KeyD': 3,   // D#
+            'KeyG': 6,   // F#
+            'KeyH': 8,   // G#
+            'KeyJ': 10,  // A#
+            // Black keys octave 2
+            'Digit2': 13, // C#
+            'Digit3': 15, // D#
+            'Digit5': 17, // F#
+            'Digit6': 19, // G#
+            'Digit7': 21, // A#
+            // Extra top C
+            'KeyQ': 24    // C (2 octaves up)
+        };
+
+        // Labels shown on white keys (computer key)
+        const whiteKeyComputerLabel = {
+            0: 'Z', 2: 'X', 4: 'C', 5: 'V', 7: 'B', 9: 'N', 11: 'M',
+            12: ',', 14: '.', 16: '/', 17: '', 19: '', 21: '', 23: '', 24: 'Q'
+        };
+
+        function midiBaseC() {
+            // octaveShift N → CN (MIDI: C4=60 → N=4 → 60)
+            // C(n) = 12 * (n + 1)  because C0=12, C1=24, C2=36, C3=48, C4=60
+            return 12 * (state.octaveShift + 1);
+        }
+
+        function renderKeyboard() {
+            const keyBed = document.getElementById('piano-keys');
+            keyBed.innerHTML = '';
+
+            const startNote = midiBaseC(); // C of selected octave
+            const totalNotes = 25; // C..C two octaves inclusive
+            const whiteIndices = []; // offsets of white keys within range
+
+            for (let i = 0; i < totalNotes; i++) {
+                if (!BLACK_PC.has((startNote + i) % 12)) whiteIndices.push(i);
+            }
+            const whiteCount = whiteIndices.length; // 15 for C–C two octaves
+
+            // White key layer
+            const whiteLayer = document.createElement('div');
+            whiteLayer.className = 'absolute inset-0 flex flex-row';
+            whiteLayer.style.zIndex = '1';
+
+            // Black key layer
+            const blackLayer = document.createElement('div');
+            blackLayer.className = 'absolute inset-0';
+            blackLayer.style.zIndex = '2';
+            blackLayer.style.pointerEvents = 'none';
+
+            const bindKey = (el, noteNum) => {
+                el.style.pointerEvents = 'auto';
+                const on = (e) => {
+                    e.preventDefault();
+                    el.classList.add('active');
+                    noteOn(noteNum, 0.55 + Math.random() * 0.4);
+                };
+                const off = (e) => {
+                    e.preventDefault();
+                    el.classList.remove('active');
+                    noteOff(noteNum);
+                };
+                el.addEventListener('mousedown', on);
+                el.addEventListener('mouseup', off);
+                el.addEventListener('mouseleave', off);
+                el.addEventListener('touchstart', on, { passive: false });
+                el.addEventListener('touchend', off, { passive: false });
+            };
+
+            // Build white keys
+            whiteIndices.forEach((offset, wIdx) => {
+                const noteNum = startNote + offset;
+                const pc = noteNum % 12;
+                const key = document.createElement('div');
+                key.dataset.note = noteNum;
+                key.className = 'key-white h-full cursor-pointer border-r border-slate-400/30 relative flex flex-col items-center justify-end pb-1.5';
+                key.style.flex = '1 1 0';
+                key.style.minWidth = '0';
+
+                // Note name
+                const name = document.createElement('span');
+                name.className = 'text-[8px] sm:text-[10px] font-mono font-bold text-slate-600 pointer-events-none leading-none';
+                const octNum = Math.floor(noteNum / 12) - 1;
+                name.innerText = NOTE_NAMES[pc] + octNum;
+                key.appendChild(name);
+
+                // Computer key hint
+                const hint = whiteKeyComputerLabel[offset];
+                if (hint) {
+                    const lab = document.createElement('span');
+                    lab.className = 'text-[8px] font-mono text-slate-400/70 pointer-events-none mt-0.5';
+                    lab.innerText = hint;
+                    key.appendChild(lab);
+                }
+
+                bindKey(key, noteNum);
+                whiteLayer.appendChild(key);
+            });
+
+            // Build black keys — position as % of full width based on white key geometry
+            // Each white key occupies 100/whiteCount % of width.
+            // Black key sits between whites: after white that is C,D,F,G,A (pc 0,2,5,7,9)
+            // Center of black key ≈ right edge of preceding white − half black width
+            const blackWidthPct = (100 / whiteCount) * 0.55;
+
+            for (let i = 0; i < totalNotes; i++) {
+                const noteNum = startNote + i;
+                const pc = noteNum % 12;
+                if (!BLACK_PC.has(pc)) continue;
+
+                // Find how many white keys are strictly before this note
+                let whitesBefore = 0;
+                for (let j = 0; j < i; j++) {
+                    if (!BLACK_PC.has((startNote + j) % 12)) whitesBefore++;
+                }
+
+                // Black key centered on the boundary between white[whitesBefore-1] and white[whitesBefore]
+                // boundary at whitesBefore * (100/whiteCount)%
+                const boundaryPct = whitesBefore * (100 / whiteCount);
+                const leftPct = boundaryPct - blackWidthPct / 2;
+
+                const key = document.createElement('div');
+                key.dataset.note = noteNum;
+                key.className = 'key-black absolute cursor-pointer rounded-b border border-black/80';
+                key.style.left = leftPct + '%';
+                key.style.width = blackWidthPct + '%';
+                key.style.top = '0';
+                key.style.height = '58%';
+                key.style.zIndex = '3';
+
+                // Small label
+                const lab = document.createElement('span');
+                lab.className = 'absolute bottom-1 left-0 right-0 text-center text-[7px] font-mono text-slate-400 pointer-events-none';
+                lab.innerText = NOTE_NAMES[pc];
+                key.appendChild(lab);
+
+                bindKey(key, noteNum);
+                blackLayer.appendChild(key);
+            }
+
+            keyBed.appendChild(whiteLayer);
+            keyBed.appendChild(blackLayer);
+
+            // Update octave label with real range
+            const lbl = document.getElementById('lbl-octave');
+            if (lbl) {
+                const o = state.octaveShift;
+                lbl.innerText = `C${o}–C${o + 2}`;
+            }
+        }
+
+        const pressedKeys = new Set();
+
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+            if (qwertyMap[e.code] === undefined) return;
+            if (pressedKeys.has(e.code)) return;
+            pressedKeys.add(e.code);
+            const noteNum = midiBaseC() + qwertyMap[e.code];
+            const keyEl = document.querySelector(`[data-note="${noteNum}"]`);
+            if (keyEl) keyEl.classList.add('active');
+            noteOn(noteNum, 0.75 + Math.random() * 0.2);
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (qwertyMap[e.code] === undefined) return;
+            pressedKeys.delete(e.code);
+            const noteNum = midiBaseC() + qwertyMap[e.code];
+            const keyEl = document.querySelector(`[data-note="${noteNum}"]`);
+            if (keyEl) keyEl.classList.remove('active');
+            noteOff(noteNum);
+        });
+
+        function initMIDI() {
+            if (navigator.requestMIDIAccess) {
+                navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+            }
+        }
+
+        function onMIDISuccess(midiAccess) {
+            const led = document.getElementById('midi-led');
+            const label = document.getElementById('midi-label');
+            const inputs = midiAccess.inputs.values();
+            
+            let count = 0;
+            for (let input of inputs) {
+                input.onmidimessage = handleMIDIMessage;
+                count++;
+            }
+
+            if (count > 0) {
+                led.className = "w-2 h-2 rounded-full bg-emerald-500 led-indicator text-emerald-500";
+                label.innerText = `MIDI (${count})`;
+            }
+        }
+
+        function onMIDIFailure() {
+            document.getElementById('midi-label').innerText = "MIDI N/A";
+        }
+
+        function handleMIDIMessage(msg) {
+            const [status, note, velocity] = msg.data;
+            const command = status >> 4;
+            if (command === 9 && velocity > 0) noteOn(note, velocity / 127);
+            else if (command === 8 || (command === 9 && velocity === 0)) noteOff(note);
+        }
+
+        function applyParamToAudio(paramName, newVal) {
+            if (paramName === 'lfoRate' && lfoNode) lfoNode.frequency.value = newVal;
+            if (paramName === 'lfoPitchDepth' && lfoGainPitch) lfoGainPitch.gain.value = newVal * 100;
+            if (paramName === 'lfoFilterDepth' && lfoGainFilter) lfoGainFilter.gain.value = newVal * 2000;
+            if (paramName === 'lfoPwmDepth' && lfoGainPwm) lfoGainPwm.gain.value = newVal;
+            if (paramName === 'masterVolume' && masterGainNode) masterGainNode.gain.value = newVal;
+            if (paramName === 'fxDrive') updateDriveCurve();
+            if (paramName === 'fxDelayTime' && delayNode) {
+                if (state.fxDelaySync) {
+                    delayNode.delayTime.value = (60 / Math.max(40, state.arpBpm)) * Math.max(0.25, newVal * 4);
+                } else {
+                    delayNode.delayTime.value = newVal;
+                }
+            }
+            if (paramName === 'fxDelayMix' && delayMixNode) delayMixNode.gain.value = newVal;
+            if (paramName === 'fxDelayFeedback' && delayFeedbackNode) delayFeedbackNode.gain.value = newVal;
+            if (paramName === 'fxChorusMix' && chorusMixNode && chorusDryNode) {
+                chorusMixNode.gain.value = newVal;
+                chorusDryNode.gain.value = 1 - newVal * 0.5;
+            }
+            if (paramName === 'fxChorusDepth' && chorusLfo) {
+                // depth applied via LFO gain into delayTime — recreate depth
+                try {
+                    const g = chorusLfo.context.createGain();
+                } catch(e) {}
+            }
+            if (paramName === 'fxChorusRate' && chorusLfo) chorusLfo.frequency.value = Math.max(0.05, newVal);
+            if (paramName === 'fxReverbMix' && reverbMixNode) reverbMixNode.gain.value = newVal;
+            if (paramName === 'fxReverbSize' && reverbConvolver && audioCtx) {
+                reverbConvolver.buffer = generateReverbImpulse(newVal);
+            }
+            if (paramName === 'fxBitcrush') updateBitcrushCurve();
+            if (paramName === 'mixNoise' && state.globalNoiseGain) state.globalNoiseGain.gain.value = newVal;
+            if (paramName === 'arpBpm' && state.fxDelaySync && delayNode) {
+                delayNode.delayTime.value = (60 / Math.max(40, newVal)) * Math.max(0.25, state.fxDelayTime * 4);
+            }
+        }
+
+        function setupKnobInteractions() {
+            document.querySelectorAll('.knob-container').forEach(container => {
+                const paramName = container.dataset.param;
+                const min = parseFloat(container.dataset.min);
+                const max = parseFloat(container.dataset.max);
+                const isLog = container.dataset.log === 'true';
+
+                let startY, startVal, fineMode;
+
+                // Ensure value label exists for fine display (5.1)
+                let valDisplay = container.querySelector('.knob-val');
+                if (!valDisplay) {
+                    valDisplay = document.createElement('span');
+                    valDisplay.className = 'knob-val text-[8px] font-mono text-amber-400/80 mt-0.5';
+                    container.appendChild(valDisplay);
+                }
+
+                const formatVal = (val) => {
+                    if (paramName.toLowerCase().includes('cutoff') || (val >= 1000 && max > 500))
+                        return (val / 1000).toFixed(1) + 'k';
+                    if (Math.abs(val) < 10) return val.toFixed(2);
+                    if (Math.abs(val) < 100) return val.toFixed(1);
+                    return String(Math.round(val));
+                };
+
+                const updateKnobUI = (val) => {
+                    const pct = isLog
+                        ? (Math.log(Math.max(val, min)) - Math.log(min)) / (Math.log(max) - Math.log(min))
+                        : (val - min) / (max - min);
+                    const deg = -135 + Math.max(0, Math.min(1, pct)) * 270;
+                    const indicator = container.querySelector('.knob-indicator');
+                    if (indicator) {
+                        indicator.style.transform = `rotate(${deg}deg)`;
+                        indicator.style.transformOrigin = 'center bottom';
+                    }
+                    if (valDisplay) valDisplay.innerText = formatVal(val);
+                };
+
+                if (state[paramName] !== undefined) updateKnobUI(state[paramName]);
+
+                const onMouseMove = (e) => {
+                    const deltaY = startY - e.clientY;
+                    let range = max - min;
+                    // Shift = fine control (10x slower)
+                    const sens = (e.shiftKey || fineMode) ? 400 : 100;
+                    let newVal = startVal + (deltaY / sens) * range;
+                    newVal = Math.max(min, Math.min(max, newVal));
+                    // Snap lightly for integer params
+                    if (container.dataset.step === '1') newVal = Math.round(newVal);
+
+                    state[paramName] = newVal;
+                    updateKnobUI(newVal);
+                    applyParamToAudio(paramName, newVal);
+                };
+
+                const onMouseUp = () => {
+                    window.removeEventListener('mousemove', onMouseMove);
+                    window.removeEventListener('mouseup', onMouseUp);
+                    container.classList.remove('ring-1', 'ring-amber-400/50');
+                };
+
+                container.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    startY = e.clientY;
+                    startVal = state[paramName] !== undefined ? state[paramName] : min;
+                    fineMode = e.shiftKey;
+                    container.classList.add('ring-1', 'ring-amber-400/50');
+                    window.addEventListener('mousemove', onMouseMove);
+                    window.addEventListener('mouseup', onMouseUp);
+                });
+
+                // Double-click resets to default data-value
+                container.addEventListener('dblclick', () => {
+                    const def = parseFloat(container.dataset.value);
+                    if (!isNaN(def)) {
+                        state[paramName] = def;
+                        updateKnobUI(def);
+                        applyParamToAudio(paramName, def);
+                    }
+                });
+            });
+        }
+
+        function syncAllKnobsFromState() {
+            document.querySelectorAll('.knob-container').forEach(container => {
+                const paramName = container.dataset.param;
+                const min = parseFloat(container.dataset.min);
+                const max = parseFloat(container.dataset.max);
+                const val = state[paramName];
+                if (val === undefined) return;
+                const pct = (val - min) / (max - min);
+                const deg = -135 + Math.max(0, Math.min(1, pct)) * 270;
+                const indicator = container.querySelector('.knob-indicator');
+                if (indicator) {
+                    indicator.style.transform = `rotate(${deg}deg)`;
+                    indicator.style.transformOrigin = 'center bottom';
+                }
+                let valDisplay = container.querySelector('.knob-val');
+                if (valDisplay) {
+                    if (val >= 1000) valDisplay.innerText = (val / 1000).toFixed(1) + 'k';
+                    else valDisplay.innerText = val < 10 ? Number(val).toFixed(2) : (val < 100 ? Number(val).toFixed(1) : Math.round(val));
+                }
+            });
+        }
+
+        /**
+         * PRESET MANAGEMENT & MODAL GRID SYSTEM
+         */
+        let filteredPresets = [...PRESET_BANK];
+
+        function populatePresetDropdowns() {
+            const presetSelect = document.getElementById('preset-select');
+            presetSelect.innerHTML = '';
+
+            filteredPresets.forEach(preset => {
+                const opt = document.createElement('option');
+                opt.value = preset.id;
+                opt.innerText = preset.name;
+                if (preset.id === state.presetId) opt.selected = true;
+                presetSelect.appendChild(opt);
+            });
+        }
+
+        function filterPresetBank() {
+            const cat = document.getElementById('preset-category-filter').value;
+            const query = document.getElementById('preset-search').value.toLowerCase().trim();
+
+            filteredPresets = PRESET_BANK.filter(p => {
+                const matchesCat = cat === 'ALL' || p.category === cat;
+                const matchesQuery = p.name.toLowerCase().includes(query);
+                return matchesCat && matchesQuery;
+            });
+
+            populatePresetDropdowns();
+            renderModalGrid();
+        }
+
+        function loadPresetById(id) {
+            const target = PRESET_BANK.find(p => p.id === parseInt(id));
+            if (target) loadPreset(target);
+        }
+
+        function loadPreset(preset) {
+            Object.assign(state, preset);
+            state.presetId = preset.id;
+            // Ensure new params have defaults if old preset JSON
+            if (state.glideTime === undefined) state.glideTime = 0;
+            if (state.glideMode === undefined) state.glideMode = 'off';
+            if (state.hardSync === undefined) state.hardSync = false;
+            if (state.noiseType === undefined) state.noiseType = 'white';
+            if (state.velocityAmp === undefined) state.velocityAmp = 0.7;
+            if (state.velocityFilter === undefined) state.velocityFilter = 0.4;
+            if (state.fxChorusMix === undefined) state.fxChorusMix = 0;
+            if (state.fxChorusDepth === undefined) state.fxChorusDepth = 0.35;
+            if (state.fxChorusRate === undefined) state.fxChorusRate = 0.8;
+            if (state.fxReverbMix === undefined) state.fxReverbMix = 0;
+            if (state.fxReverbSize === undefined) state.fxReverbSize = 0.45;
+            if (state.fxBitcrush === undefined) state.fxBitcrush = 0;
+            if (state.fxDelayFeedback === undefined) state.fxDelayFeedback = 0.4;
+            if (state.fxDelaySync === undefined) state.fxDelaySync = false;
+            if (state.fxDrivePre === undefined) state.fxDrivePre = true;
+            if (state.fxOrder === undefined) state.fxOrder = 'drive-chorus-delay-reverb';
+
+            // Sync Dropdowns & Controls
+            document.getElementById('preset-select').value = preset.id;
+
+            // Key Mode
+            document.querySelectorAll('.key-mode-btn').forEach(b => {
+                b.className = "key-mode-btn text-xs font-mono py-1 px-2 rounded bg-slate-800 text-slate-300 border border-slate-700 text-center hover:bg-slate-700";
+            });
+            const activeBtn = document.getElementById(`mode-${preset.keyMode || 'mono'}`);
+            if (activeBtn) activeBtn.className = "key-mode-btn active text-xs font-mono py-1 px-2 rounded bg-amber-500 text-slate-950 font-bold border border-amber-400 text-center";
+
+            // VCO Dropdowns
+            document.querySelectorAll('[data-vco]').forEach((panel, i) => {
+                if (state.vco[i]) {
+                    panel.querySelector('.vco-wave').value = state.vco[i].wave;
+                    panel.querySelector('.vco-octave').value = state.vco[i].octave;
+                }
+            });
+
+            // Sliders
+            document.querySelectorAll('.v-slider').forEach(slider => {
+                const param = slider.dataset.param;
+                if (state[param] !== undefined) slider.value = state[param];
+            });
+
+            // LFO
+            const lfoSel = document.getElementById('lfo-wave');
+            if (lfoSel) lfoSel.value = state.lfoWave;
+            if (lfoNode) lfoNode.type = state.lfoWave === 'samplehold' ? 'square' : state.lfoWave;
+
+            // Arp
+            const arpBtn = document.getElementById('btn-arp-toggle');
+            if (arpBtn) {
+                arpBtn.innerText = state.arpEnabled ? "ON" : "OFF";
+                arpBtn.className = state.arpEnabled ? 
+                    "w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center border border-amber-400 shadow-md" : 
+                    "w-8 h-8 rounded-full bg-slate-800 text-slate-400 font-bold text-xs flex items-center justify-center border border-slate-600";
+            }
+            const arpMode = document.getElementById('arp-mode');
+            if (arpMode) arpMode.value = state.arpMode;
+            const bpmInp = document.getElementById('arp-bpm-input');
+            if (bpmInp) bpmInp.value = Math.round(state.arpBpm || 120);
+
+            // New controls
+            const glideMode = document.getElementById('glide-mode');
+            if (glideMode) glideMode.value = state.glideMode || 'off';
+            const hardSync = document.getElementById('hard-sync-toggle');
+            if (hardSync) hardSync.checked = !!state.hardSync;
+            const noiseType = document.getElementById('noise-type');
+            if (noiseType) noiseType.value = state.noiseType || 'white';
+            const fxOrder = document.getElementById('fx-order');
+            if (fxOrder) fxOrder.value = state.fxOrder || 'drive-chorus-delay-reverb';
+            const fxDlySync = document.getElementById('fx-delay-sync');
+            if (fxDlySync) fxDlySync.checked = !!state.fxDelaySync;
+            const fxDrivePre = document.getElementById('fx-drive-pre');
+            if (fxDrivePre) fxDrivePre.checked = state.fxDrivePre !== false;
+
+            // Live audio updates
+            if (isAudioInit) {
+                updateDriveCurve();
+                updateBitcrushCurve();
+                if (delayNode) delayNode.delayTime.value = state.fxDelayTime;
+                if (delayMixNode) delayMixNode.gain.value = state.fxDelayMix;
+                if (delayFeedbackNode) delayFeedbackNode.gain.value = state.fxDelayFeedback;
+                if (chorusMixNode) chorusMixNode.gain.value = state.fxChorusMix;
+                if (chorusDryNode) chorusDryNode.gain.value = 1 - state.fxChorusMix * 0.5;
+                if (chorusLfo) chorusLfo.frequency.value = state.fxChorusRate || 0.8;
+                if (reverbMixNode) reverbMixNode.gain.value = state.fxReverbMix;
+                if (reverbConvolver) reverbConvolver.buffer = generateReverbImpulse(state.fxReverbSize || 0.45);
+                if (state.globalNoiseGain) state.globalNoiseGain.gain.value = state.mixNoise;
+                createNoiseGenerator();
+                rebuildFxChain();
+            }
+
+            // Knobs UI Refresh
+            syncAllKnobsFromState();
+
+            // 5.2 Visual feedback: flash LEDs + scope border + status
+            const vcoLeds = document.querySelectorAll('.vco-active-led');
+            vcoLeds.forEach(led => {
+                led.classList.replace('bg-slate-700', 'bg-amber-500');
+            });
+            const chassis = document.getElementById('synth-chassis');
+            if (chassis) {
+                chassis.classList.add('ring-2', 'ring-amber-400/60');
+                setTimeout(() => chassis.classList.remove('ring-2', 'ring-amber-400/60'), 350);
+            }
+            const scope = document.querySelector('.crt-screen');
+            if (scope) {
+                scope.style.boxShadow = 'inset 0 0 20px rgba(255,180,0,0.45), 0 0 12px rgba(255,180,0,0.3)';
+                setTimeout(() => { scope.style.boxShadow = ''; }, 400);
+            }
+            const noteDisp = document.getElementById('active-note-display');
+            if (noteDisp) {
+                const prev = noteDisp.innerText;
+                noteDisp.innerText = `LOADED: ${preset.name || ('#' + preset.id)}`;
+                noteDisp.classList.add('text-amber-300');
+                setTimeout(() => {
+                    noteDisp.innerText = 'READY';
+                    noteDisp.classList.remove('text-amber-300');
+                }, 900);
+            }
+            setTimeout(() => {
+                vcoLeds.forEach(led => led.classList.replace('bg-amber-500', 'bg-slate-700'));
+            }, 450);
+
+            renderModalGrid();
+        }
+
+        function renderModalGrid() {
+            const grid = document.getElementById('modal-preset-grid');
+            const countLabel = document.getElementById('modal-preset-count');
+            grid.innerHTML = '';
+
+            const modalQuery = document.getElementById('modal-search').value.toLowerCase().trim();
+            const modalPresets = filteredPresets.filter(p => p.name.toLowerCase().includes(modalQuery));
+
+            countLabel.innerText = `${modalPresets.length} Presets`;
+
+            modalPresets.forEach(preset => {
+                const isSelected = preset.id === state.presetId;
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-lg border cursor-pointer transition flex flex-col justify-between ${
+                    isSelected ? 
+                    'bg-amber-500/20 border-amber-500 text-amber-300 shadow-lg' : 
+                    'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-600 hover:bg-slate-800/50'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded ${isSelected ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400'}">${preset.category}</span>
+                        <span class="text-[10px] font-mono text-slate-500">#${String(preset.id).padStart(3, '0')}</span>
+                    </div>
+                    <div class="font-mono text-xs font-bold truncate my-1">${preset.name.split('] ')[1] || preset.name}</div>
+                    <div class="flex gap-1 text-[8px] font-mono text-slate-500 uppercase mt-1 border-t border-slate-800/60 pt-1">
+                        <span>MODE: ${preset.keyMode}</span>
+                        <span>•</span>
+                        <span>VCF: ${preset.filterCutoff}Hz</span>
+                    </div>
+                `;
+
+                card.addEventListener('click', () => {
+                    loadPreset(preset);
+                    document.getElementById('preset-browser-modal').classList.add('hidden');
+                });
+
+                grid.appendChild(card);
+            });
+        }
+
+        function renderModalCategoryTags() {
+            const container = document.getElementById('modal-category-tags');
+            container.innerHTML = '';
+
+            const cats = ["ALL", "BASS", "LEAD", "PAD", "ARP", "ANALOG", "KEYS", "SFX", "FX"];
+            cats.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = "text-xs font-mono px-2.5 py-1 rounded border border-slate-700 bg-slate-950 text-slate-300 hover:bg-slate-800 transition";
+                btn.innerText = c;
+                btn.addEventListener('click', () => {
+                    document.getElementById('preset-category-filter').value = c;
+                    filterPresetBank();
+                });
+                container.appendChild(btn);
+            });
+        }
+
+        function initUI() {
+            document.getElementById('btn-oct-down').addEventListener('click', () => {
+                if (state.octaveShift > 1) {
+                    state.octaveShift--;
+                    renderKeyboard();
+                }
+            });
+            document.getElementById('btn-oct-up').addEventListener('click', () => {
+                if (state.octaveShift < 6) {
+                    state.octaveShift++;
+                    renderKeyboard();
+                }
+            });
+
+            document.querySelectorAll('.key-mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.key-mode-btn').forEach(b => {
+                        b.className = "key-mode-btn text-xs font-mono py-1 px-2 rounded bg-slate-800 text-slate-300 border border-slate-700 text-center hover:bg-slate-700";
+                    });
+                    btn.className = "key-mode-btn active text-xs font-mono py-1 px-2 rounded bg-amber-500 text-slate-950 font-bold border border-amber-400 text-center";
+                    state.keyMode = btn.id.replace('mode-', '');
+                });
+            });
+
+            document.querySelectorAll('[data-vco]').forEach(panel => {
+                const idx = parseInt(panel.dataset.vco);
+                panel.querySelector('.vco-wave').addEventListener('change', (e) => { state.vco[idx].wave = e.target.value; });
+                panel.querySelector('.vco-octave').addEventListener('change', (e) => { state.vco[idx].octave = parseInt(e.target.value); });
+            });
+
+            document.querySelectorAll('.v-slider').forEach(slider => {
+                slider.addEventListener('input', (e) => { state[e.target.dataset.param] = parseFloat(e.target.value); });
+            });
+
+            document.getElementById('lfo-wave').addEventListener('change', (e) => {
+                state.lfoWave = e.target.value;
+                if (lfoNode) lfoNode.type = e.target.value === 'samplehold' ? 'square' : e.target.value;
+            });
+
+            document.getElementById('btn-arp-toggle').addEventListener('click', (e) => {
+                state.arpEnabled = !state.arpEnabled;
+                e.target.innerText = state.arpEnabled ? "ON" : "OFF";
+                e.target.className = state.arpEnabled ? 
+                    "w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center border border-amber-400 shadow-md" : 
+                    "w-8 h-8 rounded-full bg-slate-800 text-slate-400 font-bold text-xs flex items-center justify-center border border-slate-600";
+            });
+
+            document.getElementById('arp-mode').addEventListener('change', (e) => { state.arpMode = e.target.value; });
+
+            function setArpBpm(val) {
+                let bpm = Math.round(Number(val));
+                if (isNaN(bpm)) bpm = 120;
+                bpm = Math.max(40, Math.min(240, bpm));
+                state.arpBpm = bpm;
+                const inp = document.getElementById('arp-bpm-input');
+                if (inp) inp.value = bpm;
+                if (state.fxDelaySync) applyParamToAudio('arpBpm', bpm);
+                // Restart arp if running so interval matches new BPM
+                if (state.arpEnabled && arpKeys.length > 0) startArpeggiator();
+                return bpm;
+            }
+            document.getElementById('btn-bpm-down').addEventListener('click', (e) => {
+                const step = e.shiftKey ? 5 : 1;
+                setArpBpm(state.arpBpm - step);
+            });
+            document.getElementById('btn-bpm-up').addEventListener('click', (e) => {
+                const step = e.shiftKey ? 5 : 1;
+                setArpBpm(state.arpBpm + step);
+            });
+            const bpmInput = document.getElementById('arp-bpm-input');
+            bpmInput.addEventListener('change', () => setArpBpm(bpmInput.value));
+            bpmInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); setArpBpm(bpmInput.value); bpmInput.blur(); }
+                if (e.key === 'ArrowUp') { e.preventDefault(); setArpBpm(state.arpBpm + (e.shiftKey ? 5 : 1)); }
+                if (e.key === 'ArrowDown') { e.preventDefault(); setArpBpm(state.arpBpm - (e.shiftKey ? 5 : 1)); }
+            });
+
+            document.getElementById('scope-mode-wave').addEventListener('click', () => {
+                visualizerMode = 'wave';
+                document.getElementById('scope-mode-wave').className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40";
+                document.getElementById('scope-mode-fft').className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700";
+            });
+            document.getElementById('scope-mode-fft').addEventListener('click', () => {
+                visualizerMode = 'fft';
+                document.getElementById('scope-mode-fft').className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40";
+                document.getElementById('scope-mode-wave').className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700";
+            });
+
+            let isDawView = false;
+            document.getElementById('btn-toggle-daw').addEventListener('click', () => {
+                isDawView = !isDawView;
+                document.getElementById('wood-left').classList.toggle('hidden', isDawView);
+                document.getElementById('wood-right').classList.toggle('hidden', isDawView);
+                document.getElementById('keyboard-container').classList.toggle('hidden', isDawView);
+                document.getElementById('daw-mode-text').innerText = isDawView ? "FULL" : "COMPACT";
+            });
+
+            document.getElementById('btn-audio-init').addEventListener('click', initAudio);
+
+            // PRESET UI CONTROLS
+            document.getElementById('preset-select').addEventListener('change', (e) => {
+                loadPresetById(e.target.value);
+            });
+
+            document.getElementById('preset-category-filter').addEventListener('change', filterPresetBank);
+            document.getElementById('preset-search').addEventListener('input', filterPresetBank);
+
+            // Prev / Next Preset Navigation
+            document.getElementById('btn-prev-preset').addEventListener('click', () => {
+                let currIdx = filteredPresets.findIndex(p => p.id === state.presetId);
+                if (currIdx > 0) loadPreset(filteredPresets[currIdx - 1]);
+                else if (filteredPresets.length > 0) loadPreset(filteredPresets[filteredPresets.length - 1]);
+            });
+
+            document.getElementById('btn-next-preset').addEventListener('click', () => {
+                let currIdx = filteredPresets.findIndex(p => p.id === state.presetId);
+                if (currIdx < filteredPresets.length - 1) loadPreset(filteredPresets[currIdx + 1]);
+                else if (filteredPresets.length > 0) loadPreset(filteredPresets[0]);
+            });
+
+            // Browser Modal Controls
+            document.getElementById('btn-open-browser').addEventListener('click', () => {
+                renderModalCategoryTags();
+                renderModalGrid();
+                document.getElementById('preset-browser-modal').classList.remove('hidden');
+            });
+
+            document.getElementById('btn-close-modal').addEventListener('click', () => {
+                document.getElementById('preset-browser-modal').classList.add('hidden');
+            });
+            document.getElementById('btn-modal-close-bottom').addEventListener('click', () => {
+                document.getElementById('preset-browser-modal').classList.add('hidden');
+            });
+            document.getElementById('modal-search').addEventListener('input', renderModalGrid);
+
+            // Preset Export / Import
+            document.getElementById('btn-export-preset').addEventListener('click', () => {
+                const jsonStr = JSON.stringify(state, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `DaveC-Fury-preset-${state.presetId}.json`;
+                a.click();
+            });
+
+            document.getElementById('file-import').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    try {
+                        const imported = JSON.parse(evt.target.result);
+                        loadPreset(imported);
+                    } catch (err) {
+                        alert("Invalid Preset File!");
+                    }
+                };
+                reader.readAsText(file);
+            });
+
+            // --- New control listeners (glide, sync, noise, FX) ---
+            const glideModeEl = document.getElementById('glide-mode');
+            if (glideModeEl) glideModeEl.addEventListener('change', (e) => { state.glideMode = e.target.value; });
+
+            const hardSyncEl = document.getElementById('hard-sync-toggle');
+            if (hardSyncEl) hardSyncEl.addEventListener('change', (e) => { state.hardSync = e.target.checked; });
+
+            const noiseTypeEl = document.getElementById('noise-type');
+            if (noiseTypeEl) noiseTypeEl.addEventListener('change', (e) => {
+                state.noiseType = e.target.value;
+                if (isAudioInit) createNoiseGenerator();
+            });
+
+            const fxOrderEl = document.getElementById('fx-order');
+            if (fxOrderEl) fxOrderEl.addEventListener('change', (e) => {
+                state.fxOrder = e.target.value;
+                if (isAudioInit) rebuildFxChain();
+            });
+
+            const fxDlySyncEl = document.getElementById('fx-delay-sync');
+            if (fxDlySyncEl) fxDlySyncEl.addEventListener('change', (e) => {
+                state.fxDelaySync = e.target.checked;
+                applyParamToAudio('fxDelayTime', state.fxDelayTime);
+            });
+
+            const fxDrivePreEl = document.getElementById('fx-drive-pre');
+            if (fxDrivePreEl) fxDrivePreEl.addEventListener('change', (e) => {
+                state.fxDrivePre = e.target.checked;
+                updateDriveCurve();
+            });
+
+            // Keyboard velocity simulation (stronger for upper keys slightly randomized)
+            // Virtual keyboard already calls noteOn — patch after render if needed
+
+            populatePresetDropdowns();
+            loadPresetById(1);
+            setupKnobInteractions();
+            renderKeyboard();
+            initMIDI();
+        }
+
+        window.onload = () => {
+            initUI();
+        };
+    </script>
+</body>
+</html>
